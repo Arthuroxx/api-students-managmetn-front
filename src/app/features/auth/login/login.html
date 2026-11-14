@@ -1,0 +1,150 @@
+<main id="main-content" class="login" tabindex="-1">
+  <section class="login__pane" aria-labelledby="login-title">
+    <div class="login__panel">
+      <sms-brand-mark />
+
+      <header class="login__header">
+        <p class="login__eyebrow">Welcome back</p>
+        <h1 id="login-title">Sign in to your workspace</h1>
+        <p class="login__lede">
+          Use the account configured in the Student Management API to manage student records.
+        </p>
+      </header>
+
+      <form class="login__form" [formRoot]="loginForm">
+        @if (formError(); as message) {
+          <p class="login__alert" role="alert">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 7.5v5M12 16.2v.3" />
+            </svg>
+            {{ message }}
+          </p>
+        }
+
+        <div class="login__field">
+          <label for="login-email">Email</label>
+          <input
+            id="login-email"
+            type="email"
+            autocomplete="email"
+            inputmode="email"
+            placeholder="you@example.com"
+            [attr.aria-invalid]="showFieldError('email')"
+            [attr.aria-describedby]="showFieldError('email') ? 'login-email-error' : null"
+            [formField]="loginForm.email"
+          />
+
+          @if (showFieldError('email')) {
+            <p id="login-email-error" class="login__field-error">
+              {{ fieldErrorMessage('email') }}
+            </p>
+          }
+        </div>
+
+        <div class="login__field">
+          <label for="login-password">Password</label>
+
+          <div class="login__password">
+            <input
+              id="login-password"
+              [type]="showPassword() ? 'text' : 'password'"
+              autocomplete="current-password"
+              [attr.aria-invalid]="showFieldError('password')"
+              [attr.aria-describedby]="showFieldError('password') ? 'login-password-error' : null"
+              [formField]="loginForm.password"
+            />
+
+            <button
+              type="button"
+              class="login__reveal"
+              [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+              [attr.aria-pressed]="showPassword()"
+              (click)="togglePassword()"
+            >
+              @if (showPassword()) {
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="m4 4 16 16" />
+                  <path
+                    d="M10.6 6.3A9.9 9.9 0 0 1 12 6.2c4.4 0 8 3.7 9 5.8a12 12 0 0 1-2.3 3.1M6.6 6.7A12.6 12.6 0 0 0 3 12c1 2.1 4.6 5.8 9 5.8a9.6 9.6 0 0 0 3.6-.7"
+                  />
+                  <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+                </svg>
+              } @else {
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path
+                    d="M3 12c1-2.1 4.6-5.8 9-5.8s8 3.7 9 5.8c-1 2.1-4.6 5.8-9 5.8S4 14.1 3 12Z"
+                  />
+                  <circle cx="12" cy="12" r="2.8" />
+                </svg>
+              }
+            </button>
+          </div>
+
+          @if (showFieldError('password')) {
+            <p id="login-password-error" class="login__field-error">
+              {{ fieldErrorMessage('password') }}
+            </p>
+          }
+        </div>
+
+        <button type="submit" class="login__submit" [disabled]="loginForm().submitting()">
+          @if (loginForm().submitting()) {
+            Signing in…
+          } @else {
+            Sign in
+          }
+        </button>
+      </form>
+
+      <p class="login__note">
+        Accounts are managed by the API. Contact an administrator if you cannot sign in.
+      </p>
+    </div>
+  </section>
+
+  <aside class="login__aside" aria-labelledby="login-aside-title">
+    <div class="login__aside-content">
+      <p class="login__aside-eyebrow">Student Management</p>
+      <h2 id="login-aside-title">One calm place for every student record.</h2>
+      <ul class="login__features">
+        <li>
+          <span class="login__feature-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M12 3 5 6v5c0 4.4 2.9 8.4 7 10 4.1-1.6 7-5.6 7-10V6l-7-3Z" />
+              <path d="m9 11.5 2 2 4-4" />
+            </svg>
+          </span>
+          <span>
+            <strong>Secure sessions</strong>
+            <span>Signed tokens protect every request to the API.</span>
+          </span>
+        </li>
+        <li>
+          <span class="login__feature-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <circle cx="12" cy="8" r="3.5" />
+              <path d="M5 20v-1.5A4.5 4.5 0 0 1 9.5 14h5a4.5 4.5 0 0 1 4.5 4.5V20" />
+            </svg>
+          </span>
+          <span>
+            <strong>Role-aware access</strong>
+            <span>Administrators manage records while viewers stay read-only.</span>
+          </span>
+        </li>
+        <li>
+          <span class="login__feature-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <rect x="4" y="4" width="16" height="16" rx="3" />
+              <path d="M8 9h8M8 13h8M8 17h5" />
+            </svg>
+          </span>
+          <span>
+            <strong>Focused workspace</strong>
+            <span>Searchable, filterable records without the noise.</span>
+          </span>
+        </li>
+      </ul>
+    </div>
+  </aside>
+</main>
