@@ -1,3 +1,30 @@
+@mixin dark-palette {
+  color-scheme: dark;
+
+  --color-bg: #0b0b0d;
+  --color-surface: #121215;
+  --color-surface-muted: #18181c;
+  --color-border: #26262b;
+  --color-border-subtle: #1e1e23;
+  --color-border-strong: #3a3a42;
+
+  --color-text: #f4f4f5;
+  --color-text-muted: #a1a1aa;
+  --color-text-subtle: #8b8b94;
+
+  --color-accent: #a5b4fc;
+  --color-accent-hover: #c7d2fe;
+  --color-accent-soft: #1e1b4b;
+  --color-on-accent: #111827;
+  --color-focus: #a5b4fc;
+
+  --color-success: #4ade80;
+  --color-success-soft: #0f2318;
+  --color-success-border: #14532d;
+
+  --shadow-panel: 0 1px 2px rgb(0 0 0 / 40%), 0 24px 48px -32px rgb(0 0 0 / 70%);
+}
+
 :root {
   color-scheme: light;
 
@@ -58,6 +85,8 @@
 
   /* Layout */
   --content-max: 68rem;
+  --layout-sidebar: 16rem;
+  --layout-header: 3.75rem;
 
   /* Shape */
   --radius-sm: 0.25rem;
@@ -75,31 +104,14 @@
   --ease-out: cubic-bezier(0.2, 0, 0, 1);
 }
 
+/* Automatic dark mode, unless the user chose light explicitly. */
 @media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-
-    --color-bg: #0b0b0d;
-    --color-surface: #121215;
-    --color-surface-muted: #18181c;
-    --color-border: #26262b;
-    --color-border-subtle: #1e1e23;
-    --color-border-strong: #3a3a42;
-
-    --color-text: #f4f4f5;
-    --color-text-muted: #a1a1aa;
-    --color-text-subtle: #8b8b94;
-
-    --color-accent: #a5b4fc;
-    --color-accent-hover: #c7d2fe;
-    --color-accent-soft: #1e1b4b;
-    --color-on-accent: #111827;
-    --color-focus: #a5b4fc;
-
-    --color-success: #4ade80;
-    --color-success-soft: #0f2318;
-    --color-success-border: #14532d;
-
-    --shadow-panel: 0 1px 2px rgb(0 0 0 / 40%), 0 24px 48px -32px rgb(0 0 0 / 70%);
+  :root:not([data-theme='light']) {
+    @include dark-palette;
   }
+}
+
+/* Explicit choice, including light mode when the system prefers dark. */
+:root[data-theme='dark'] {
+  @include dark-palette;
 }

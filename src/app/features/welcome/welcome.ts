@@ -1,9 +1,9 @@
 import { ChangeDetectionStrategy, Component, VERSION } from '@angular/core';
-import { BrandMark } from '../../shared/brand/brand-mark';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'sms-welcome',
-  imports: [BrandMark],
+  imports: [RouterLink],
   templateUrl: './welcome.html',
   styleUrl: './welcome.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -3,9 +3,9 @@
 A focused, accessible web client for the Student Management API. This project is developed
 independently from the backend and uses Angular 22 as its application framework.
 
-The repository is currently in the **foundation stage**. It contains the project setup, architecture,
-design tokens, quality tooling, and a small welcome screen. Authentication, student CRUD, and API
-integration are intentionally out of scope for this stage.
+The repository is currently in the **layout stage**. It contains the project setup, architecture,
+design tokens, quality tooling, the application shell, and navigation. Authentication, student CRUD,
+and API integration are intentionally out of scope for this stage.
 
 ## Table of contents
 
@@ -21,7 +21,7 @@ integration are intentionally out of scope for this stage.
 - [Quality and accessibility](#quality-and-accessibility)
 - [Testing](#testing)
 - [Git workflow](#git-workflow)
-- [Stage 1 scope](#stage-1-scope)
+- [Stage 2 scope](#stage-2-scope)
 - [Backend reference](#backend-reference)
 - [Roadmap](#roadmap)
 
@@ -31,8 +31,8 @@ The application is planned as a clear, low-friction workspace for managing stude
 visual direction follows the restraint of tools such as Linear, Geist, and GitHub Primer: neutral
 surfaces, subtle borders, deliberate spacing, and a single accent color.
 
-The first screen is a static welcome page. It verifies the build, routing, typography, tokens, and
-accessibility baseline without connecting to the API.
+The application opens on an overview screen inside a persistent shell with a sidebar, header, and
+theme control. A students route is available as a placeholder for the next feature stage.
 
 ## Stack
 
@@ -103,9 +103,16 @@ The build output is written to `dist/students-management-frontend/browser`.
 src/
 ├── app/
 │   ├── core/                    # Cross-cutting configuration with no feature ownership
-│   │   └── config/              # API base URL and future global configuration
+│   │   ├── config/              # API base URL and future global configuration
+│   │   └── theme/               # System, light, and dark theme preference
 │   ├── features/                # Business features, grouped by capability
-│   │   └── welcome/             # Foundation welcome screen
+│   │   ├── students/            # Student workspace route (placeholder)
+│   │   └── welcome/             # Overview screen
+│   ├── layout/                  # Application shell and navigation
+│   │   ├── app-header/          # Page title and theme control
+│   │   ├── app-shell/           # Sidebar, header, and routed content
+│   │   ├── app-sidebar/         # Primary navigation and mobile drawer
+│   │   └── navigation.ts        # Navigation model
 │   ├── shared/                  # Reusable, presentation-only building blocks
 │   │   └── brand/               # Product brand mark
 │   ├── app.config.ts            # Application providers
@@ -127,8 +134,8 @@ src/
 └── styles.scss
 ```
 
-The `layout` directory is intentionally introduced in Stage 2, when the navigation shell exists.
-Creating it now would add empty structure without a responsibility.
+The `layout/` directory owns the visual shell. Feature routes render inside its `main` landmark,
+while `core/theme` holds the only stateful cross-cutting service introduced so far.
 
 ## Architecture decisions
 
@@ -141,9 +148,26 @@ extra provider is needed in `app.config.ts`.
 ### Feature-first organization
 
 Code is grouped by capability rather than by technical type. `features/` owns business
-functionality, `shared/` owns reusable presentation, `core/` owns global configuration and future
-cross-cutting services, and `layout/` will own the visual shell. This avoids generic `components/`
-and `services/` folders that accumulate unrelated files.
+functionality, `shared/` owns reusable presentation, `core/` owns global configuration and
+cross-cutting services, and `layout/` owns the visual shell. This avoids generic `components/` and
+`services/` folders that accumulate unrelated files.
+
+### Application shell
+
+`AppShell` hosts the persistent frame: a sidebar with primary navigation, a sticky header showing
+the current page title and theme control, and a `main` landmark for routed content. The shell is
+lazy-loaded as the parent route; each child route supplies its own `title`, which the header reads
+from the router snapshot after navigation.
+
+Below 1024px the sidebar becomes an off-canvas drawer. It is removed from the tab order while closed
+(`visibility: hidden`), closes on route changes, backdrop clicks, its close control, or `Escape`,
+and exposes `aria-expanded`/`aria-controls` on the menu button.
+
+### Theme preference
+
+`ThemeService` stores `system`, `light`, or `dark` in `localStorage` and reflects explicit choices
+on the `<html>` element as `data-theme`. When no choice is stored, the CSS `prefers-color-scheme`
+query is authoritative, so the application follows the operating system without JavaScript.
 
 ### Signals and modern component APIs
 
@@ -173,7 +197,7 @@ authentication stage without duplicating token logic across services.
 
 ### Forms
 
-No forms exist in Stage 1. New forms will use Signal Forms from `@angular/forms/signals` with typed
+No forms exist yet. New forms will use Signal Forms from `@angular/forms/signals` with typed
 models and schema-based validation. Reactive Forms will only be used if a documented limitation makes
 Signal Forms unsuitable.
 
@@ -183,7 +207,8 @@ The interface uses plain SCSS and CSS custom properties instead of a component l
 the bundle small and the visual language specific to the product. Tokens cover surfaces, text,
 accent and feedback colors, a 4px-based spacing scale, type sizes, radii, shadows, and motion.
 
-Light and dark themes share the same tokens through `prefers-color-scheme`. The system font stack
+Light and dark palettes follow the operating system by default. An explicit theme choice overrides
+the media query through `data-theme`, and the selection is persisted locally. The system font stack
 avoids a network dependency. Focus rings, selection colors, reduced-motion handling, and tabular
 numerals are part of the foundation rather than later patches.
 
@@ -207,8 +232,8 @@ private keys in the frontend.
 
 ## Design system
 
-The design tokens live in `src/styles/_tokens.scss`. The initial screen exercises the core pieces of
-the system:
+The design tokens live in `src/styles/_tokens.scss`. The shell and overview screen exercise the core
+pieces of the system:
 
 - neutral canvas and surface layers;
 - a single indigo accent used sparingly;
@@ -216,7 +241,9 @@ the system:
 - a restrained panel shadow;
 - a compact type scale with balanced display text;
 - responsive stacking at tablet and phone widths;
-- light and dark palettes driven by the operating system preference.
+- light and dark palettes that follow the system until the user chooses otherwise;
+- a three-state theme control (system, light, dark) persisted locally;
+- an off-canvas navigation drawer below 1024px.
 
 Decorative gradients, glassmorphism, oversized shadows, and unnecessary cards are deliberately
 avoided.
@@ -226,22 +253,27 @@ avoided.
 - TypeScript `strict` mode is enabled explicitly in `tsconfig.json`.
 - `any` is rejected by ESLint.
 - The lint setup includes the Angular template accessibility rules.
-- The page uses semantic `header`, `main`, `aside`, and `footer` landmarks.
+- The shell uses semantic `header`, `nav`, `main`, and `aside` landmarks.
 - A skip link targets `#main-content`.
 - The document declares `lang="en"` and a light/dark color scheme.
 - Focus indicators are visible and use a consistent token.
-- Animation is limited to a short entrance transition and is removed for users who prefer reduced
-  motion.
+- Navigation links expose `aria-current="page"` on the active route.
+- The mobile drawer leaves the tab order when closed, closes on `Escape`, and keeps
+  `aria-expanded`/`aria-controls` in sync on its trigger.
+- While the drawer is open, the page behind it cannot scroll.
+- Animation is limited to short transitions and is removed for users who prefer reduced motion.
 - The layout remains usable from 320px upward and does not rely on hover.
-- `bypassSecurityTrust` and direct DOM manipulation are not used.
+- `bypassSecurityTrust` is not used. Direct DOM access is limited to the theme service, which sets a
+  single attribute on the document root.
 
 WCAG 2.2 AA is the target for the completed application. This stage establishes the baseline; each
 later feature must preserve it.
 
 ## Testing
 
-Vitest runs through the official Angular unit-test builder. Tests cover the root component, the
-welcome screen, and the brand mark input behavior.
+Vitest runs through the official Angular unit-test builder. The suite covers the root component,
+application shell, sidebar, header, theme preference, overview screen, students placeholder, and
+brand mark input behavior.
 
 ```bash
 npm test
@@ -258,30 +290,33 @@ npm run test:coverage
 - `main` holds stable, reviewed work.
 - `develop` is the integration branch.
 - `feature/frontend-foundation` contains Stage 1.
+- `feature/layout` contains Stage 2 and builds on the Stage 1 branch until the first pull request is
+  merged.
 - Future stages use one `feature/*` branch each and target `develop` through a pull request.
 
 The frontend repository is independent from the backend repository. No backend files are modified by
 this project.
 
-## Stage 1 scope
+## Stage 2 scope
 
 Included:
 
-- Angular 22 workspace with SCSS, routing, zoneless change detection, and Vitest;
-- strict TypeScript, ESLint, Prettier, and formatting scripts;
-- initial `core`, `features`, `shared`, and styling structure;
-- design tokens, light/dark palettes, and a responsive welcome screen;
-- centralized API base URL token and root `HttpClient` provider;
+- persistent application shell with sidebar, sticky header, and routed content;
+- responsive off-canvas navigation below 1024px;
+- lazy-loaded `Overview` and `Students` routes with page titles;
+- active-route styling and accessible current-page semantics;
+- system/light/dark theme control persisted in `localStorage`;
+- shared design tokens extended with layout dimensions and explicit themes;
+- responsive overview screen and a students placeholder page;
 - unit tests, lint, and production build verification;
-- project documentation and Git branch setup.
+- project documentation updates.
 
 Excluded:
 
 - login, JWT storage, and route protection;
+- real API requests and student data;
 - student list, filters, pagination, and CRUD;
-- role-aware UI;
-- real API requests;
-- the navigation layout and application shell.
+- role-aware UI and permission guards.
 
 ## Backend reference
 
@@ -304,9 +339,9 @@ metadata in `meta`.
 
 ## Roadmap
 
-1. **Foundation** — project setup, architecture, design tokens, and quality gates.
-2. **Layout** — application shell, sidebar, header, and navigation routes.
-3. **Authentication** — login, JWT handling, interceptors, and route protection.
+1. **Foundation** — completed. Project setup, architecture, design tokens, and quality gates.
+2. **Layout** — completed. Application shell, sidebar, header, navigation routes, and theme control.
+3. **Authentication** — next. Login, JWT handling, interceptors, and route protection.
 4. **Student list** — table, search, filters, and pagination.
 5. **Student management** — create, read, update, and delete flows.
 6. **Roles and permissions** — align the interface with backend access rules.
