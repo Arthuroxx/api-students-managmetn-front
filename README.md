@@ -3,9 +3,10 @@
 A focused, accessible web client for the Student Management API. This project is developed
 independently from the backend and uses Angular 22 as its application framework.
 
-The repository is currently in the **authentication stage**. It contains the project setup,
-architecture, design tokens, quality tooling, the application shell, navigation, and a JWT-based
-sign-in flow. Student CRUD and API-backed student data are intentionally out of scope for this stage.
+The repository is currently in the **student-list stage**. It contains the project setup,
+architecture, design tokens, quality tooling, the application shell, JWT authentication, and a
+read-only student directory with server-side filters and pagination. Student create, edit, and delete
+flows are intentionally out of scope for this stage.
 
 ## Table of contents
 
@@ -21,7 +22,7 @@ sign-in flow. Student CRUD and API-backed student data are intentionally out of 
 - [Quality and accessibility](#quality-and-accessibility)
 - [Testing](#testing)
 - [Git workflow](#git-workflow)
-- [Stage 3 scope](#stage-3-scope)
+- [Stage 4 scope](#stage-4-scope)
 - [Backend reference](#backend-reference)
 - [Roadmap](#roadmap)
 
@@ -32,8 +33,8 @@ visual direction follows the restraint of tools such as Linear, Geist, and GitHu
 surfaces, subtle borders, deliberate spacing, and a single accent color.
 
 The application opens on a sign-in screen. After authentication, an overview screen renders inside a
-persistent shell with a sidebar, header, theme control, account menu, and sign-out action. A students
-route is available as a placeholder for the next feature stage.
+persistent shell with a sidebar, header, theme control, account menu, and sign-out action. The
+students route provides a paginated directory with first-name, last-name, and email filters.
 
 ## Stack
 
@@ -109,12 +110,12 @@ src/
 │   ├── core/                    # Cross-cutting configuration with no feature ownership
 │   │   ├── auth/                # Session state, JWT decoding, interceptor, and guards
 │   │   ├── config/              # API base URL and future global configuration
-│   │   ├── http/                # URL helpers shared by API services
+│   │   ├── http/                # URL and API error helpers shared by API services
 │   │   └── theme/               # System, light, and dark theme preference
 │   ├── features/                # Business features, grouped by capability
 │   │   ├── auth/                # Public sign-in route
 │   │   │   └── login/           # Signal Form, validation, and error handling
-│   │   ├── students/            # Student workspace route (placeholder)
+│   │   ├── students/            # Paginated student directory, filters, and API service
 │   │   └── welcome/             # Overview screen
 │   ├── layout/                  # Application shell and navigation
 │   │   ├── app-header/          # Page title, theme control, and account menu
@@ -194,6 +195,21 @@ sign-in page.
 The JWT payload is decoded without signature verification. Verification belongs to the API; the UI
 only reads the email claim to personalize the header.
 
+### Student directory
+
+`StudentsService` requests `GET /students` with `page`, `limit`, and optional `firstName`, `lastName`,
+and `email` parameters. Filtering and pagination are server-side, matching the API contract; the
+client never downloads the full collection. The service trims blank filters before sending them.
+
+The route keeps its state in signals and reloads whenever the query changes. Filter inputs are
+debounced by 300ms, Enter applies them immediately, and any filter or page-size change returns to the
+first page. In-flight requests are cancelled when a newer query arrives, preventing stale responses
+from overwriting fresher results. The page renders dedicated loading, error, empty, and filtered-empty
+states, and the request can be retried without losing the current query.
+
+Birth dates are formatted in UTC so a date-only value cannot shift to the previous day in negative
+time zones. Record creation dates use the visitor's locale.
+
 ### Signals and modern component APIs
 
 Local state will use `signal()` and `computed()` as the default. `linkedSignal()` is reserved for
@@ -268,7 +284,9 @@ pieces of the system:
 - a three-state theme control (system, light, dark) persisted locally;
 - an off-canvas navigation drawer below 1024px;
 - a focused sign-in screen with a form panel and a supporting feature panel;
-- shared danger tokens for validation and authentication errors.
+- shared danger tokens for validation and authentication errors;
+- a directory table with identity avatars, metadata, and responsive column visibility;
+- filter controls, a pagination footer, and skeleton placeholders for loading.
 
 Decorative gradients, glassmorphism, oversized shadows, and unnecessary cards are deliberately
 avoided.
@@ -289,6 +307,10 @@ avoided.
 - The sign-in form has explicit labels, `autocomplete` hints, `aria-invalid`, and
   `aria-describedby` links to field errors.
 - Authentication failures use `role="alert"`; the password visibility control exposes `aria-pressed`.
+- The student directory uses a real table with a caption and row headers, labelled filter inputs, and
+  a visible focus target for horizontally scrollable results.
+- Loading state is exposed through `aria-busy` and a polite live region; errors use `role="alert"`.
+- Disabled pagination controls remain visible so the page structure does not shift.
 - Animation is limited to short transitions and is removed for users who prefer reduced motion.
 - The layout remains usable from 320px upward and does not rely on hover.
 - `bypassSecurityTrust` is not used. Direct DOM access is limited to the theme service, which sets a
@@ -300,9 +322,9 @@ later feature must preserve it.
 ## Testing
 
 Vitest runs through the official Angular unit-test builder. The suite covers the root component,
-application shell, sidebar, header, theme preference, overview screen, students placeholder, brand
-mark input behavior, JWT decoding, API URL joining, session lifecycle, interceptor behavior, route
-guards, and the login form.
+application shell, sidebar, header, theme preference, overview screen, brand mark input behavior,
+JWT decoding, API URL joining, session lifecycle, interceptor behavior, route guards, the login form,
+the student list service, and the directory's loading, filtering, pagination, empty, and error states.
 
 ```bash
 npm test
@@ -322,33 +344,33 @@ npm run test:coverage
 - `feature/layout` contains Stage 2 and builds on the Stage 1 branch until the first pull request is
   merged.
 - `feature/authentication` contains Stage 3 and builds on the layout branch.
+- `feature/student-list` contains Stage 4 and builds on the authentication branch.
 - Future stages use one `feature/*` branch each and target `develop` through a pull request.
 
 The frontend repository is independent from the backend repository. No backend files are modified by
 this project.
 
-## Stage 3 scope
+## Stage 4 scope
 
 Included:
 
-- public sign-in route with a Signal Forms login form;
-- email format, required, and length validation with accessible messages;
-- JWT session handling with decoded email, role, and absolute expiry;
-- session persistence in `localStorage` with expired-session cleanup;
-- functional interceptor adding `Authorization: Bearer` and handling `401` responses;
-- `authGuard` for the application shell and `guestGuard` for the login route;
-- return-URL navigation after sign-in and after an expired session;
-- mapped errors for invalid credentials, rate limiting, and an unreachable API;
-- account email, role, and sign-out action in the shell header;
-- login layout, responsive behavior, and shared danger tokens;
+- read-only student directory backed by `GET /students`;
+- server-side first-name, last-name, and email filters with a 300ms debounce;
+- Enter-to-apply, clear-filters, and filtered-empty states;
+- page navigation with configurable rows per page (10, 25, 50);
+- request cancellation so stale responses never overwrite newer results;
+- dedicated skeleton, error, and retry states;
+- responsive table that hides secondary columns on narrow screens;
+- shared API error reader used by both authentication and the directory;
 - unit tests, lint, and production build verification;
 - project documentation updates.
 
 Excluded:
 
-- real student data, list, filters, pagination, or CRUD;
-- role-based route permissions inside the students area;
-- token refresh and multi-tab session synchronization.
+- create, edit, and delete student flows;
+- sorting controls and free-text global search;
+- column selection, CSV export, and saved filter presets;
+- role-specific directory actions inside the students area.
 
 ## Backend reference
 
@@ -369,12 +391,32 @@ The local backend runs at `http://localhost:3000`, with Swagger at
 `documentNumber`, and `birthDate`; the list response wraps records in `data` with pagination
 metadata in `meta`.
 
+`GET /students` accepts the following query parameters:
+
+| Parameter   | Type    | Default | Rules                                          |
+| ----------- | ------- | ------- | ---------------------------------------------- |
+| `page`      | integer | `1`     | `1`–`10000`                                    |
+| `limit`     | integer | `10`    | `1`–`100`                                      |
+| `firstName` | string  | —       | Partial, case-insensitive match; max 100 chars |
+| `lastName`  | string  | —       | Partial, case-insensitive match; max 100 chars |
+| `email`     | string  | —       | Partial, case-insensitive match; max 255 chars |
+
+Blank filters are trimmed away by both the client and the API. Results are ordered by creation date,
+newest first. The response shape is:
+
+```json
+{
+  "data": [],
+  "meta": { "total": 0, "page": 1, "limit": 10, "totalPages": 0 }
+}
+```
+
 ## Roadmap
 
 1. **Foundation** — completed. Project setup, architecture, design tokens, and quality gates.
 2. **Layout** — completed. Application shell, sidebar, header, navigation routes, and theme control.
 3. **Authentication** — completed. Login, JWT handling, interceptors, and route protection.
-4. **Student list** — next. Table, search, filters, and pagination.
+4. **Student list** — completed. Directory table, filters, and pagination.
 5. **Student management** — create, read, update, and delete flows.
 6. **Roles and permissions** — align the interface with backend access rules.
 7. **Quality** — validation, errors, accessibility, responsiveness, and tests.

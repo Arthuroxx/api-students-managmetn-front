@@ -5,6 +5,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import type { LoginCredentials } from '../../../core/auth/auth.models';
 import { AuthService } from '../../../core/auth/auth.service';
+import { readApiErrorMessage } from '../../../core/http/api-error';
 import { BrandMark } from '../../../shared/brand/brand-mark';
 
 @Component({
@@ -88,25 +89,7 @@ export class Login {
       case 0:
         return 'The API is unreachable. Check that it is running and try again.';
       default:
-        return this.apiMessage(error.error) ?? 'Sign-in failed. Please try again.';
+        return readApiErrorMessage(error.error) ?? 'Sign-in failed. Please try again.';
     }
-  }
-
-  private apiMessage(body: unknown): string | null {
-    if (typeof body !== 'object' || body === null) {
-      return null;
-    }
-
-    const message = (body as Record<string, unknown>)['message'];
-
-    if (typeof message === 'string') {
-      return message;
-    }
-
-    if (Array.isArray(message) && typeof message[0] === 'string') {
-      return message[0];
-    }
-
-    return null;
   }
 }
