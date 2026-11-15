@@ -1,11 +1,15 @@
 <section class="students" aria-labelledby="students-title">
   <header class="students__header">
-    <p class="students__eyebrow">Workspace</p>
-    <h1 id="students-title">Students</h1>
-    <p class="students__lede">
-      Browse the student directory, narrow results by name or email, and move through records page
-      by page. Data is read directly from the Student Management API.
-    </p>
+    <div class="students__heading">
+      <p class="students__eyebrow">Workspace</p>
+      <h1 id="students-title">Students</h1>
+      <p class="students__lede">
+        Browse the student directory, narrow results by name or email, and open a record to review,
+        edit, or delete it. Data is read directly from the Student Management API.
+      </p>
+    </div>
+
+    <a class="students__add action-primary" routerLink="/students/new">Add student</a>
   </header>
 
   <form
@@ -70,6 +74,25 @@
     </p>
   </form>
 
+  @if (notice(); as message) {
+    <p class="notice" role="status">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="m5 13 4 4L19 7" />
+      </svg>
+      <span>{{ message }}</span>
+      <button
+        type="button"
+        class="notice__dismiss"
+        aria-label="Dismiss notification"
+        (click)="dismissNotice()"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="m6 6 12 12M18 6 6 18" />
+        </svg>
+      </button>
+    </p>
+  }
+
   <section class="students__results" [attr.aria-busy]="loading()" aria-label="Student results">
     <p class="sr-only" role="status" aria-live="polite">{{ statusMessage() }}</p>
 
@@ -125,7 +148,8 @@
           </button>
         } @else {
           <h2>No students yet</h2>
-          <p>Students created through the API will appear here, newest first.</p>
+          <p>Create the first record to start building the directory.</p>
+          <a class="students__action" routerLink="/students/new">Add student</a>
         }
       </div>
     } @else {
@@ -148,13 +172,14 @@
               <th scope="col" class="is-secondary">Document</th>
               <th scope="col">Date of birth</th>
               <th scope="col" class="is-secondary">Added</th>
+              <th scope="col" class="students-table__actions-heading">Actions</th>
             </tr>
           </thead>
           <tbody>
             @for (student of students(); track student.id) {
               <tr>
                 <th scope="row">
-                  <span class="student-identity">
+                  <a class="student-identity" [routerLink]="['/students', student.id]">
                     <span class="student-identity__avatar" aria-hidden="true">
                       {{ initials(student) }}
                     </span>
@@ -162,13 +187,30 @@
                       <span class="student-identity__name">{{ fullName(student) }}</span>
                       <span class="student-identity__email">{{ student.email }}</span>
                     </span>
-                  </span>
+                  </a>
                 </th>
                 <td class="is-secondary">
                   <span class="students-table__document">{{ student.documentNumber }}</span>
                 </td>
                 <td>{{ formatBirthDate(student.birthDate) }}</td>
                 <td class="is-secondary">{{ formatCreatedAt(student.createdAt) }}</td>
+                <td class="students-table__actions">
+                  <a
+                    class="students-table__action"
+                    [routerLink]="['/students', student.id, 'edit']"
+                    [attr.aria-label]="'Edit ' + fullName(student)"
+                  >
+                    Edit
+                  </a>
+                  <button
+                    type="button"
+                    class="students-table__action students-table__action--danger"
+                    [attr.aria-label]="'Delete ' + fullName(student)"
+                    (click)="requestDelete(student)"
+                  >
+                    Delete
+                  </button>
+                </td>
               </tr>
             }
           </tbody>
@@ -215,4 +257,15 @@
       </footer>
     }
   </section>
+
+  <sms-confirm-dialog
+    [open]="confirmOpen()"
+    heading="Delete student"
+    [message]="deleteMessage()"
+    confirmLabel="Delete student"
+    [busy]="deleting()"
+    [error]="deleteError()"
+    (confirmed)="confirmDelete()"
+    (cancelled)="cancelDelete()"
+  />
 </section>

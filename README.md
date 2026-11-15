@@ -3,10 +3,10 @@
 A focused, accessible web client for the Student Management API. This project is developed
 independently from the backend and uses Angular 22 as its application framework.
 
-The repository is currently in the **student-list stage**. It contains the project setup,
-architecture, design tokens, quality tooling, the application shell, JWT authentication, and a
-read-only student directory with server-side filters and pagination. Student create, edit, and delete
-flows are intentionally out of scope for this stage.
+The repository is currently in the **student-management stage**. It contains the project setup,
+architecture, design tokens, quality tooling, the application shell, JWT authentication, a paginated
+student directory, and the create, read, update, and delete flows for student records. Role-specific
+interface behavior is intentionally out of scope for this stage.
 
 ## Table of contents
 
@@ -22,7 +22,7 @@ flows are intentionally out of scope for this stage.
 - [Quality and accessibility](#quality-and-accessibility)
 - [Testing](#testing)
 - [Git workflow](#git-workflow)
-- [Stage 4 scope](#stage-4-scope)
+- [Stage 5 scope](#stage-5-scope)
 - [Backend reference](#backend-reference)
 - [Roadmap](#roadmap)
 
@@ -34,7 +34,8 @@ surfaces, subtle borders, deliberate spacing, and a single accent color.
 
 The application opens on a sign-in screen. After authentication, an overview screen renders inside a
 persistent shell with a sidebar, header, theme control, account menu, and sign-out action. The
-students route provides a paginated directory with first-name, last-name, and email filters.
+students route provides a paginated directory with first-name, last-name, and email filters. Records
+can be created, opened, edited, and deleted from the same area, with confirmation before deletion.
 
 ## Stack
 
@@ -115,7 +116,7 @@ src/
 │   ├── features/                # Business features, grouped by capability
 │   │   ├── auth/                # Public sign-in route
 │   │   │   └── login/           # Signal Form, validation, and error handling
-│   │   ├── students/            # Paginated student directory, filters, and API service
+│   │   ├── students/            # Directory, detail, editor, and CRUD API service
 │   │   └── welcome/             # Overview screen
 │   ├── layout/                  # Application shell and navigation
 │   │   ├── app-header/          # Page title, theme control, and account menu
@@ -123,7 +124,8 @@ src/
 │   │   ├── app-sidebar/         # Primary navigation and mobile drawer
 │   │   └── navigation.ts        # Navigation model
 │   ├── shared/                  # Reusable, presentation-only building blocks
-│   │   └── brand/               # Product brand mark
+│   │   ├── brand/               # Product brand mark
+│   │   └── confirm-dialog/      # Native, accessible confirmation dialog
 │   ├── app.config.ts            # Application providers
 │   ├── app.html                 # Root template
 │   ├── app.routes.ts            # Top-level routes
@@ -210,6 +212,27 @@ states, and the request can be retried without losing the current query.
 Birth dates are formatted in UTC so a date-only value cannot shift to the previous day in negative
 time zones. Record creation dates use the visitor's locale.
 
+### Student management
+
+`POST /students`, `PATCH /students/:id`, and `DELETE /students/:id` back the create, edit, and delete
+flows. The editor uses Signal Forms with required, email, max-length, and no-future-date validation,
+mirrors the API normalization (trimmed names, lowercase email, uppercase document number), and sends
+only changed fields on update.
+
+Create and edit routes reuse a single `StudentEditor` component; `/students/new` and
+`/students/:id/edit` differ only by the presence of the `:id` parameter. The detail route loads
+`GET /students/:id` and renders loading, missing-record, error, and retry states. A one-time
+in-memory feedback service carries the success message from a write flow to the page that displays
+the result.
+
+Deletion is available from both the directory and the detail page. A shared native-dialog component
+confirms the action, exposes busy and error states, and restores focus on close. The directory
+reloads after deletion and steps back a page when the current page becomes empty.
+
+API failures are mapped to actionable messages: `400` for invalid values, `403` for missing
+permissions, `404` for removed records, `409` for duplicate email addresses or document numbers, and
+`0` for an unreachable API.
+
 ### Signals and modern component APIs
 
 Local state will use `signal()` and `computed()` as the default. `linkedSignal()` is reserved for
@@ -236,9 +259,9 @@ the base URL with relative endpoints. This keeps configuration centralized and t
 ### Forms
 
 Forms use Signal Forms from `@angular/forms/signals` with typed models and schema-based validation.
-The login form binds native inputs through `[formField]`, submits through `[formRoot]`, and maps API
-failures to an accessible alert. Reactive Forms will only be used if a documented limitation makes
-Signal Forms unsuitable.
+The login form and the student editor bind native inputs through `[formField]`, submit through
+`[formRoot]`, and map API failures to accessible alerts. Reactive Forms will only be used if a
+documented limitation makes Signal Forms unsuitable.
 
 ### Styling
 
@@ -286,7 +309,10 @@ pieces of the system:
 - a focused sign-in screen with a form panel and a supporting feature panel;
 - shared danger tokens for validation and authentication errors;
 - a directory table with identity avatars, metadata, and responsive column visibility;
-- filter controls, a pagination footer, and skeleton placeholders for loading.
+- filter controls, a pagination footer, and skeleton placeholders for loading;
+- a student detail panel with grouped metadata and destructive-action styling;
+- an editor form with inline validation and a responsive two-column layout;
+- a native confirmation dialog with busy, error, and reduced-motion states.
 
 Decorative gradients, glassmorphism, oversized shadows, and unnecessary cards are deliberately
 avoided.
@@ -309,6 +335,13 @@ avoided.
 - Authentication failures use `role="alert"`; the password visibility control exposes `aria-pressed`.
 - The student directory uses a real table with a caption and row headers, labelled filter inputs, and
   a visible focus target for horizontally scrollable results.
+- Student rows expose explicit edit and delete controls with descriptive accessible names; delete
+  actions require confirmation.
+- The student editor links every field to an inline error through `aria-invalid` and
+  `aria-describedby`, and announces submit failures with `role="alert"`.
+- The confirmation dialog is a native `<dialog>`: it takes focus on open, closes on `Escape` or
+  cancellation, disables both actions while busy, and returns focus to the trigger.
+- Success notices use a polite live region and can be dismissed with the keyboard.
 - Loading state is exposed through `aria-busy` and a polite live region; errors use `role="alert"`.
 - Disabled pagination controls remain visible so the page structure does not shift.
 - Animation is limited to short transitions and is removed for users who prefer reduced motion.
@@ -324,7 +357,9 @@ later feature must preserve it.
 Vitest runs through the official Angular unit-test builder. The suite covers the root component,
 application shell, sidebar, header, theme preference, overview screen, brand mark input behavior,
 JWT decoding, API URL joining, session lifecycle, interceptor behavior, route guards, the login form,
-the student list service, and the directory's loading, filtering, pagination, empty, and error states.
+the student service and its CRUD requests, the directory's loading, filtering, pagination, deletion,
+empty, and error states, the create and edit flows, the detail page states, the confirmation dialog,
+and the shared formatting helpers.
 
 ```bash
 npm test
@@ -345,32 +380,36 @@ npm run test:coverage
   merged.
 - `feature/authentication` contains Stage 3 and builds on the layout branch.
 - `feature/student-list` contains Stage 4 and builds on the authentication branch.
+- `feature/student-management` contains Stage 5 and builds on the student-list branch.
 - Future stages use one `feature/*` branch each and target `develop` through a pull request.
 
 The frontend repository is independent from the backend repository. No backend files are modified by
 this project.
 
-## Stage 4 scope
+## Stage 5 scope
 
 Included:
 
-- read-only student directory backed by `GET /students`;
-- server-side first-name, last-name, and email filters with a 300ms debounce;
-- Enter-to-apply, clear-filters, and filtered-empty states;
-- page navigation with configurable rows per page (10, 25, 50);
-- request cancellation so stale responses never overwrite newer results;
-- dedicated skeleton, error, and retry states;
-- responsive table that hides secondary columns on narrow screens;
-- shared API error reader used by both authentication and the directory;
-- unit tests, lint, and production build verification;
+- create, detail, and edit routes under `/students`, with `/students/new`,
+  `/students/:id`, and `/students/:id/edit`;
+- a Signal Forms editor with required, email, max-length, and no-future-date validation;
+- request normalization matching the API (trimmed names, lowercase email, uppercase document number);
+- partial `PATCH` requests that send only changed fields;
+- a detail page with loading, missing-record, error, and retry states;
+- deletion from both the directory and the detail page, guarded by a shared confirmation dialog;
+- busy and error feedback for deletion, including the `403` permission response;
+- a one-time success notice for create and update flows;
+- directory reload after deletion, with a step back when the current page becomes empty;
+- shared student formatting helpers and a shared API error reader;
+- unit tests, lint, formatting, and production build verification;
 - project documentation updates.
 
 Excluded:
 
-- create, edit, and delete student flows;
-- sorting controls and free-text global search;
-- column selection, CSV export, and saved filter presets;
-- role-specific directory actions inside the students area.
+- role-aware interface behavior and permission gating, which belong to Stage 6;
+- optimistic updates, bulk deletion, and undo;
+- sorting controls, global search, column selection, and CSV export;
+- audit history and soft-delete restoration.
 
 ## Backend reference
 
@@ -390,6 +429,11 @@ The local backend runs at `http://localhost:3000`, with Swagger at
 `http://localhost:3000/api/docs`. Student fields are `firstName`, `lastName`, `email`,
 `documentNumber`, and `birthDate`; the list response wraps records in `data` with pagination
 metadata in `meta`.
+
+`POST /students` requires `firstName`, `lastName`, `email`, `documentNumber`, and `birthDate`.
+`PATCH /students/:id` accepts any subset of those fields but rejects explicit `null` values.
+`birthDate` is an ISO date (`YYYY-MM-DD`) that cannot be in the future. Email addresses and document
+numbers are unique; a duplicate returns `409 Conflict`.
 
 `GET /students` accepts the following query parameters:
 
@@ -417,7 +461,7 @@ newest first. The response shape is:
 2. **Layout** — completed. Application shell, sidebar, header, navigation routes, and theme control.
 3. **Authentication** — completed. Login, JWT handling, interceptors, and route protection.
 4. **Student list** — completed. Directory table, filters, and pagination.
-5. **Student management** — create, read, update, and delete flows.
+5. **Student management** — completed. Create, detail, edit, and delete flows with validation.
 6. **Roles and permissions** — align the interface with backend access rules.
 7. **Quality** — validation, errors, accessibility, responsiveness, and tests.
 8. **Finalization** — documentation and deployment preparation.

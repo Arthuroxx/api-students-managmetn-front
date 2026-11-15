@@ -13,6 +13,16 @@ export interface Student {
   readonly updatedAt: string;
 }
 
+export interface StudentInput {
+  readonly firstName: string;
+  readonly lastName: string;
+  readonly email: string;
+  readonly documentNumber: string;
+  readonly birthDate: string;
+}
+
+export type UpdateStudentInput = Partial<StudentInput>;
+
 export interface StudentFilters {
   readonly firstName?: string;
   readonly lastName?: string;

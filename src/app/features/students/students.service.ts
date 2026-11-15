@@ -3,7 +3,13 @@ import { inject, Service } from '@angular/core';
 import type { Observable } from 'rxjs';
 import { API_BASE_URL } from '../../core/config/api-config';
 import { buildApiUrl } from '../../core/http/api-url';
-import type { PaginatedStudents, StudentQuery } from './students.models';
+import type {
+  PaginatedStudents,
+  Student,
+  StudentInput,
+  StudentQuery,
+  UpdateStudentInput,
+} from './students.models';
 
 @Service()
 export class StudentsService {
@@ -22,5 +28,25 @@ export class StudentsService {
     }
 
     return this.http.get<PaginatedStudents>(buildApiUrl(this.baseUrl, 'students'), { params });
+  }
+
+  getById(id: string): Observable<Student> {
+    return this.http.get<Student>(this.studentUrl(id));
+  }
+
+  create(input: StudentInput): Observable<Student> {
+    return this.http.post<Student>(buildApiUrl(this.baseUrl, 'students'), input);
+  }
+
+  update(id: string, input: UpdateStudentInput): Observable<Student> {
+    return this.http.patch<Student>(this.studentUrl(id), input);
+  }
+
+  remove(id: string): Observable<void> {
+    return this.http.delete<void>(this.studentUrl(id));
+  }
+
+  private studentUrl(id: string): string {
+    return buildApiUrl(this.baseUrl, `students/${encodeURIComponent(id)}`);
   }
 }
