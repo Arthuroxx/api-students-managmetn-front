@@ -80,4 +80,19 @@ describe('authInterceptor', () => {
 
     expect(logout).not.toHaveBeenCalled();
   });
+
+  it('should propagate 403 responses without clearing the session', () => {
+    const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+    const error = vi.fn();
+
+    httpClient.get('/students').subscribe({ error });
+
+    http
+      .expectOne('/students')
+      .flush({ statusCode: 403 }, { status: 403, statusText: 'Forbidden' });
+
+    expect(error).toHaveBeenCalledOnce();
+    expect(logout).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
+  });
 });

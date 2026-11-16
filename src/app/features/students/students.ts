@@ -10,6 +10,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import type { Subscription } from 'rxjs';
+import { AuthorizationService } from '../../core/auth/authorization.service';
 import { readApiErrorMessage } from '../../core/http/api-error';
 import { ConfirmDialog } from '../../shared/confirm-dialog/confirm-dialog';
 import { StudentFeedbackService } from './student-feedback.service';
@@ -48,8 +49,10 @@ interface FilterDraft {
 export class Students {
   private readonly studentsService = inject(StudentsService);
   private readonly feedback = inject(StudentFeedbackService);
+  private readonly authorization = inject(AuthorizationService);
   private readonly destroyRef = inject(DestroyRef);
 
+  protected readonly canManage = this.authorization.canManageStudents;
   protected readonly pageSizes = STUDENT_PAGE_SIZES;
   protected readonly skeletonRows = [0, 1, 2, 3, 4] as const;
   protected readonly filters = signal<FilterDraft>({

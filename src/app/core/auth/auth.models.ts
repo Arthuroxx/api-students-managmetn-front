@@ -2,6 +2,10 @@ export const USER_ROLES = ['ADMIN', 'USER'] as const;
 
 export type UserRole = (typeof USER_ROLES)[number];
 
+export const STUDENT_VIEW_ROLES = ['ADMIN', 'USER'] as const satisfies readonly UserRole[];
+
+export const STUDENT_MANAGE_ROLES = ['ADMIN'] as const satisfies readonly UserRole[];
+
 export interface LoginCredentials {
   readonly email: string;
   readonly password: string;

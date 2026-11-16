@@ -1,8 +1,10 @@
 import { HttpErrorResponse } from '@angular/common/http';
+import { signal } from '@angular/core';
 import type { ComponentFixture } from '@angular/core/testing';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { Subject, of, throwError } from 'rxjs';
+import { AuthorizationService } from '../../core/auth/authorization.service';
 import type { PaginatedStudents, Student } from './students.models';
 import { Students } from './students';
 import { StudentsService } from './students.service';
@@ -60,14 +62,20 @@ function text(fixture: ComponentFixture<Students>, selector: string): string {
 describe('Students', () => {
   let list: ReturnType<typeof vi.fn>;
   let remove: ReturnType<typeof vi.fn>;
+  let canManage: ReturnType<typeof signal<boolean>>;
 
   beforeEach(async () => {
     list = vi.fn();
     remove = vi.fn();
+    canManage = signal(true);
 
     await TestBed.configureTestingModule({
       imports: [Students],
-      providers: [provideRouter([]), { provide: StudentsService, useValue: { list, remove } }],
+      providers: [
+        provideRouter([]),
+        { provide: StudentsService, useValue: { list, remove } },
+        { provide: AuthorizationService, useValue: { canManageStudents: canManage } },
+      ],
     }).compileComponents();
   });
 
@@ -342,5 +350,51 @@ describe('Students', () => {
 
     expect(list).toHaveBeenLastCalledWith({ page: 1, limit: 10 });
     expect(text(fixture, '.students__page-status')).toBe('Page 1 of 1');
+  });
+
+  it('should show management actions to administrators', async () => {
+    list.mockReturnValue(of(createPage()));
+
+    const fixture = TestBed.createComponent(Students);
+    await fixture.whenStable();
+
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.querySelector('.students__tools .action-primary')).not.toBeNull();
+    expect(element.querySelector('.students-table__actions-heading')).not.toBeNull();
+    expect(element.querySelector('a[aria-label="Edit Ana Lopez"]')).not.toBeNull();
+    expect(element.querySelector('button[aria-label="Delete Ana Lopez"]')).not.toBeNull();
+    expect(element.querySelector('.access-badge')).toBeNull();
+  });
+
+  it('should hide management actions from read-only users', async () => {
+    canManage.set(false);
+    list.mockReturnValue(of(createPage()));
+
+    const fixture = TestBed.createComponent(Students);
+    await fixture.whenStable();
+
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.querySelector('.students__tools .action-primary')).toBeNull();
+    expect(element.querySelector('.students-table__actions-heading')).toBeNull();
+    expect(element.querySelector('a[aria-label="Edit Ana Lopez"]')).toBeNull();
+    expect(element.querySelector('button[aria-label="Delete Ana Lopez"]')).toBeNull();
+    expect(element.querySelector('sms-confirm-dialog')).toBeNull();
+    expect(text(fixture, '.access-badge')).toBe('Read-only access');
+    expect(element.querySelectorAll('.students-table tbody tr')).toHaveLength(1);
+  });
+
+  it('should not offer record creation to read-only users when the directory is empty', async () => {
+    canManage.set(false);
+    list.mockReturnValue(of({ data: [], meta: { total: 0, page: 1, limit: 10, totalPages: 0 } }));
+
+    const fixture = TestBed.createComponent(Students);
+    await fixture.whenStable();
+
+    expect(text(fixture, '.students__state h2')).toBe('No students yet');
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('.students__state .students__action'),
+    ).toBeNull();
   });
 });

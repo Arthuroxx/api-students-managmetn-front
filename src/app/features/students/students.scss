@@ -52,6 +52,13 @@
   flex: none;
 }
 
+.students__tools {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
 .students__filters {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr)) auto;

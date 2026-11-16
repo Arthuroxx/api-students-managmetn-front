@@ -1,9 +1,10 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import type { ComponentFixture } from '@angular/core/testing';
 import { TestBed } from '@angular/core/testing';
 import { Router, RouterOutlet, provideRouter } from '@angular/router';
 import { Subject, of, throwError } from 'rxjs';
+import { AuthorizationService } from '../../../core/auth/authorization.service';
 import { StudentFeedbackService } from '../student-feedback.service';
 import type { Student } from '../students.models';
 import { StudentsService } from '../students.service';
@@ -42,9 +43,11 @@ describe('StudentDetail', () => {
   };
   let feedback: StudentFeedbackService;
   let router: Router;
+  let canManage: ReturnType<typeof signal<boolean>>;
 
   beforeEach(async () => {
     students = { getById: vi.fn(), remove: vi.fn() };
+    canManage = signal(true);
 
     await TestBed.configureTestingModule({
       imports: [Host],
@@ -55,6 +58,7 @@ describe('StudentDetail', () => {
           { path: 'students/:id', component: StudentDetail },
         ]),
         { provide: StudentsService, useValue: students },
+        { provide: AuthorizationService, useValue: { canManageStudents: canManage } },
       ],
     }).compileComponents();
 
@@ -217,5 +221,19 @@ describe('StudentDetail', () => {
     expect(element.querySelector('dialog')?.hasAttribute('open')).toBe(true);
     expect(text(fixture, '.confirm__error')).toContain('permission');
     expect(router.url).toBe('/students/student-1');
+  });
+
+  it('should hide edit and delete actions from read-only users', async () => {
+    canManage.set(false);
+    students.getById.mockReturnValue(of(STUDENT));
+
+    const fixture = await render();
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(text(fixture, 'h1')).toBe('Ana Lopez');
+    expect(element.querySelector('.detail__edit')).toBeNull();
+    expect(element.querySelector('.detail__delete')).toBeNull();
+    expect(element.querySelector('sms-confirm-dialog')).toBeNull();
+    expect(text(fixture, '.access-badge')).toBe('Read-only access');
   });
 });
