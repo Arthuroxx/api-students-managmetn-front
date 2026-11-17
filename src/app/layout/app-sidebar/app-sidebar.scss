@@ -14,6 +14,10 @@
   background: var(--color-surface);
 }
 
+.sidebar:focus {
+  outline: none;
+}
+
 .sidebar__header {
   display: flex;
   align-items: center;

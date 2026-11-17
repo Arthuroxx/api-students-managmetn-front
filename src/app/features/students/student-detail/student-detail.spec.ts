@@ -5,6 +5,7 @@ import { TestBed } from '@angular/core/testing';
 import { Router, RouterOutlet, provideRouter } from '@angular/router';
 import { Subject, of, throwError } from 'rxjs';
 import { AuthorizationService } from '../../../core/auth/authorization.service';
+import { expectNoA11yViolations } from '../../../testing/a11y';
 import { StudentFeedbackService } from '../student-feedback.service';
 import type { Student } from '../students.models';
 import { StudentsService } from '../students.service';
@@ -235,5 +236,21 @@ describe('StudentDetail', () => {
     expect(element.querySelector('.detail__delete')).toBeNull();
     expect(element.querySelector('sms-confirm-dialog')).toBeNull();
     expect(text(fixture, '.access-badge')).toBe('Read-only access');
+  });
+
+  it('should have no WCAG 2.2 AA violations on the loaded record', async () => {
+    students.getById.mockReturnValue(of(STUDENT));
+
+    const fixture = await render();
+
+    await expectNoA11yViolations(fixture.nativeElement as HTMLElement);
+  });
+
+  it('should have no WCAG 2.2 AA violations in the not-found state', async () => {
+    students.getById.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 404 })));
+
+    const fixture = await render();
+
+    await expectNoA11yViolations(fixture.nativeElement as HTMLElement);
   });
 });

@@ -1,5 +1,14 @@
 import { DOCUMENT } from '@angular/common';
-import { ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  Injector,
+  afterNextRender,
+  effect,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter, map } from 'rxjs';
@@ -19,6 +28,9 @@ import { AppSidebar } from '../app-sidebar/app-sidebar';
 export class AppShell {
   private readonly router = inject(Router);
   private readonly document = inject(DOCUMENT);
+  private readonly injector = inject(Injector);
+  private readonly sidebar = viewChild(AppSidebar);
+  private readonly header = viewChild(AppHeader);
 
   protected readonly sidebarOpen = signal(false);
   protected readonly pageTitle = toSignal(
@@ -46,11 +58,21 @@ export class AppShell {
   }
 
   protected toggleSidebar(): void {
-    this.sidebarOpen.update((open) => !open);
+    if (this.sidebarOpen()) {
+      this.closeSidebar();
+    } else {
+      this.sidebarOpen.set(true);
+      afterNextRender(() => this.sidebar()?.focusInitial(), { injector: this.injector });
+    }
   }
 
   protected closeSidebar(): void {
+    if (!this.sidebarOpen()) {
+      return;
+    }
+
     this.sidebarOpen.set(false);
+    afterNextRender(() => this.header()?.focusMenu(), { injector: this.injector });
   }
 
   private activeTitle(): string {

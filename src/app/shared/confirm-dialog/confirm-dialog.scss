@@ -101,6 +101,12 @@
   }
 }
 
+@media (max-width: 22.5rem) {
+  .confirm__panel {
+    padding: var(--space-4);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .confirm__cancel,
   .confirm__confirm {

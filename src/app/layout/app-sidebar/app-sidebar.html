@@ -1,4 +1,4 @@
-<aside id="app-sidebar" class="sidebar" [class.is-open]="open()">
+<aside #sidebar id="app-sidebar" class="sidebar" tabindex="-1" [class.is-open]="open()">
   <div class="sidebar__header">
     <a class="sidebar__brand" routerLink="/" (click)="navigated.emit()">
       <sms-brand-mark />
@@ -58,7 +58,7 @@
   </nav>
 
   <div class="sidebar__footer">
-    <p class="sidebar__stage">Stage 6 · Roles and permissions</p>
-    <p class="sidebar__note">Access follows your assigned role.</p>
+    <p class="sidebar__stage">Stage 7 · Quality</p>
+    <p class="sidebar__note">Accessible, responsive, and consistent.</p>
   </div>
 </aside>

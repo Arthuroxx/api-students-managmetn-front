@@ -302,6 +302,12 @@
   }
 }
 
+@media (max-width: 22.5rem) {
+  .login__pane {
+    padding-inline: var(--space-4);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .login__field input,
   .login__reveal,

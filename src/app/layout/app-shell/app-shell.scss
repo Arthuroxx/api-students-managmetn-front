@@ -42,3 +42,9 @@
     background: rgb(9 9 11 / 45%);
   }
 }
+
+@media (max-width: 22.5rem) {
+  .shell__content {
+    padding: var(--space-4);
+  }
+}

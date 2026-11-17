@@ -192,9 +192,100 @@ body {
   stroke-linecap: round;
 }
 
+/*
+ * Shared state panels keep empty, error, and not-found states visually consistent
+ * across features. `.state-panel--card` adds the standalone panel frame used when
+ * the state is not already rendered inside a card; `.state-panel--center` centers
+ * the content for full-width empty states.
+ */
+.state-panel {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-2);
+}
+
+.state-panel--center {
+  justify-items: center;
+  text-align: center;
+}
+
+.state-panel--card {
+  padding: clamp(var(--space-8), 7vw, var(--space-12)) var(--space-6);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.state-panel__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: var(--radius-full);
+  background: var(--color-surface-muted);
+  color: var(--color-text-subtle);
+}
+
+.state-panel__icon svg {
+  width: 1.375rem;
+  height: 1.375rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.state-panel--error .state-panel__icon {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.state-panel__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.5rem;
+  margin-top: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.state-panel__action:hover {
+  background: var(--color-accent-hover);
+}
+
+.state-panel--error .state-panel__action {
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+}
+
+.state-panel--error .state-panel__action:hover {
+  background: var(--color-surface-muted);
+  color: var(--color-text);
+}
+
+/* Shared frame for skeleton placeholders shown while data loads. */
+.loading-panel {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .action-primary,
-  .notice__dismiss {
+  .notice__dismiss,
+  .state-panel__action {
     transition: none;
   }
 }

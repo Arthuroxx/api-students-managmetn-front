@@ -2,6 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { expectNoA11yViolations } from '../../testing/a11y';
 import { AppShell } from './app-shell';
 
 describe('AppShell', () => {
@@ -64,5 +65,35 @@ describe('AppShell', () => {
     fixture.detectChanges();
 
     expect(element.querySelector('.sidebar.is-open')).toBeNull();
+  });
+
+  it('should move focus into the drawer and restore it on close', async () => {
+    const fixture = TestBed.createComponent(AppShell);
+    await fixture.whenStable();
+
+    const element = fixture.nativeElement as HTMLElement;
+    const menu = element.querySelector<HTMLButtonElement>('.app-header__menu');
+    // jsdom does not evaluate media queries, so the mobile-only trigger stays display:none.
+    // Force it visible to exercise the focus-restore path.
+    menu!.style.display = 'inline-flex';
+    menu?.focus();
+    menu?.click();
+    await fixture.whenStable();
+
+    expect(element.querySelector('.shell__body')?.hasAttribute('inert')).toBe(true);
+    expect(document.activeElement).toBe(element.querySelector('#app-sidebar'));
+
+    element.querySelector<HTMLButtonElement>('.shell__backdrop')?.click();
+    await fixture.whenStable();
+
+    expect(element.querySelector('.shell__body')?.hasAttribute('inert')).toBe(false);
+    expect(document.activeElement).toBe(menu);
+  });
+
+  it('should have no WCAG 2.2 AA violations', async () => {
+    const fixture = TestBed.createComponent(AppShell);
+    await fixture.whenStable();
+
+    await expectNoA11yViolations(fixture.nativeElement as HTMLElement);
   });
 });

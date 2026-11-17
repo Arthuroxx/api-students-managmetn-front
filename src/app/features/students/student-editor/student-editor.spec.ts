@@ -4,6 +4,7 @@ import type { ComponentFixture } from '@angular/core/testing';
 import { TestBed } from '@angular/core/testing';
 import { Router, RouterOutlet, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
+import { expectNoA11yViolations } from '../../../testing/a11y';
 import { StudentFeedbackService } from '../student-feedback.service';
 import type { Student } from '../students.models';
 import { StudentsService } from '../students.service';
@@ -273,5 +274,30 @@ describe('StudentEditor', () => {
 
     expect(students.getById).toHaveBeenCalledTimes(2);
     expect(element.querySelector('form')).not.toBeNull();
+  });
+
+  it('should have no WCAG 2.2 AA violations on the create form', async () => {
+    const fixture = await render('/students/new');
+
+    await expectNoA11yViolations(fixture.nativeElement as HTMLElement);
+  });
+
+  it('should have no WCAG 2.2 AA violations on the edit form', async () => {
+    students.getById.mockReturnValue(of(STUDENT));
+
+    const fixture = await render('/students/student-1/edit');
+
+    await expectNoA11yViolations(fixture.nativeElement as HTMLElement);
+  });
+
+  it('should have no WCAG 2.2 AA violations when validation fails', async () => {
+    const fixture = await render('/students/new');
+    const element = fixture.nativeElement as HTMLElement;
+
+    submitForm(element);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    await expectNoA11yViolations(element);
   });
 });
