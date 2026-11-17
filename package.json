@@ -9,7 +9,7 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test --watch=false",
-    "test:scripts": "node --test scripts",
+    "test:scripts": "node --test \"scripts/**/*.test.mjs\"",
     "test:watch": "ng test --watch",
     "test:coverage": "ng test --coverage --watch=false",
     "lint": "ng lint",
