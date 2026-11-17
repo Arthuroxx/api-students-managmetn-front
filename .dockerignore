@@ -1,0 +1,24 @@
+# Ignore everything that is not needed to build the application image.
+
+.git
+.github
+.gitignore
+.dockerignore
+.env
+.env.*
+!.env.example
+
+node_modules
+dist
+.angular
+coverage
+out-tsc
+
+docs
+*.md
+!README.md
+
+.vscode
+.idea
+.DS_Store
+Thumbs.db
