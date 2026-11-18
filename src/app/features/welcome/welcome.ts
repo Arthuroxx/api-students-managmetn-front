@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, VERSION } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 @Component({
@@ -8,6 +8,4 @@ import { RouterLink } from '@angular/router';
   styleUrl: './welcome.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class Welcome {
-  protected readonly angularVersion = VERSION.full;
-}
+export class Welcome {}
