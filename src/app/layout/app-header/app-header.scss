@@ -63,7 +63,47 @@
   white-space: nowrap;
 }
 
-.app-header__theme {
+.app-header__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: none;
+}
+
+.app-header__account {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-left: var(--space-3);
+  border-left: 1px solid var(--color-border);
+}
+
+.app-header__account-text {
+  display: grid;
+  gap: 0.125rem;
+  min-width: 0;
+  text-align: right;
+}
+
+.app-header__account-email {
+  overflow: hidden;
+  max-width: 15rem;
+  color: var(--color-text);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-header__account-role {
+  color: var(--color-text-subtle);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.app-header__icon-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -78,12 +118,12 @@
     color var(--duration-fast) var(--ease-out);
 }
 
-.app-header__theme:hover {
+.app-header__icon-button:hover {
   background: var(--color-surface-muted);
   color: var(--color-text);
 }
 
-.app-header__theme svg {
+.app-header__icon-button svg {
   width: 1.125rem;
   height: 1.125rem;
   fill: none;
@@ -99,9 +139,19 @@
   }
 }
 
+@media (max-width: 44rem) {
+  .app-header__account-text {
+    display: none;
+  }
+
+  .app-header__account {
+    padding-left: var(--space-2);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .app-header__menu,
-  .app-header__theme {
+  .app-header__icon-button {
     transition: none;
   }
 }

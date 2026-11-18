@@ -3,9 +3,9 @@
 A focused, accessible web client for the Student Management API. This project is developed
 independently from the backend and uses Angular 22 as its application framework.
 
-The repository is currently in the **layout stage**. It contains the project setup, architecture,
-design tokens, quality tooling, the application shell, and navigation. Authentication, student CRUD,
-and API integration are intentionally out of scope for this stage.
+The repository is currently in the **authentication stage**. It contains the project setup,
+architecture, design tokens, quality tooling, the application shell, navigation, and a JWT-based
+sign-in flow. Student CRUD and API-backed student data are intentionally out of scope for this stage.
 
 ## Table of contents
 
@@ -21,7 +21,7 @@ and API integration are intentionally out of scope for this stage.
 - [Quality and accessibility](#quality-and-accessibility)
 - [Testing](#testing)
 - [Git workflow](#git-workflow)
-- [Stage 2 scope](#stage-2-scope)
+- [Stage 3 scope](#stage-3-scope)
 - [Backend reference](#backend-reference)
 - [Roadmap](#roadmap)
 
@@ -31,8 +31,9 @@ The application is planned as a clear, low-friction workspace for managing stude
 visual direction follows the restraint of tools such as Linear, Geist, and GitHub Primer: neutral
 surfaces, subtle borders, deliberate spacing, and a single accent color.
 
-The application opens on an overview screen inside a persistent shell with a sidebar, header, and
-theme control. A students route is available as a placeholder for the next feature stage.
+The application opens on a sign-in screen. After authentication, an overview screen renders inside a
+persistent shell with a sidebar, header, theme control, account menu, and sign-out action. A students
+route is available as a placeholder for the next feature stage.
 
 ## Stack
 
@@ -46,7 +47,7 @@ theme control. A students route is available as a placeholder for the next featu
 | Routing           | Angular Router with lazy-loaded feature routes          |
 | Styling           | SCSS and CSS custom properties                          |
 | HTTP              | `HttpClient` configured at the application root         |
-| Forms             | Signal Forms planned for new forms                      |
+| Forms             | Signal Forms in the login screen                        |
 | Unit tests        | Vitest 5 through the official Angular unit-test builder |
 | Linting           | ESLint 10 with `angular-eslint` and `typescript-eslint` |
 | Formatting        | Prettier 3                                              |
@@ -57,7 +58,10 @@ theme control. A students route is available as a placeholder for the next featu
 - Node.js `^22.22.3`, `^24.15.0`, or `>=26.0.0`
 - npm 11 or newer
 
-The backend is not required to run this stage.
+The backend is required for sign-in. Start it at `http://localhost:3000` and set `CORS_ORIGINS` to
+include the frontend origin, for example `http://localhost:4200`. Without a configured CORS origin the
+browser blocks the login request. The rest of the interface, including validation and session
+restoration, can be reviewed without the API.
 
 ## Getting started
 
@@ -103,13 +107,17 @@ The build output is written to `dist/students-management-frontend/browser`.
 src/
 ├── app/
 │   ├── core/                    # Cross-cutting configuration with no feature ownership
+│   │   ├── auth/                # Session state, JWT decoding, interceptor, and guards
 │   │   ├── config/              # API base URL and future global configuration
+│   │   ├── http/                # URL helpers shared by API services
 │   │   └── theme/               # System, light, and dark theme preference
 │   ├── features/                # Business features, grouped by capability
+│   │   ├── auth/                # Public sign-in route
+│   │   │   └── login/           # Signal Form, validation, and error handling
 │   │   ├── students/            # Student workspace route (placeholder)
 │   │   └── welcome/             # Overview screen
 │   ├── layout/                  # Application shell and navigation
-│   │   ├── app-header/          # Page title and theme control
+│   │   ├── app-header/          # Page title, theme control, and account menu
 │   │   ├── app-shell/           # Sidebar, header, and routed content
 │   │   ├── app-sidebar/         # Primary navigation and mobile drawer
 │   │   └── navigation.ts        # Navigation model
@@ -134,8 +142,9 @@ src/
 └── styles.scss
 ```
 
-The `layout/` directory owns the visual shell. Feature routes render inside its `main` landmark,
-while `core/theme` holds the only stateful cross-cutting service introduced so far.
+The `layout/` directory owns the visual shell. Feature routes render inside its `main` landmark.
+`core/auth` owns the session, `core/theme` owns the theme preference, and `features/auth` owns the
+public sign-in experience.
 
 ## Architecture decisions
 
@@ -169,6 +178,22 @@ and exposes `aria-expanded`/`aria-controls` on the menu button.
 on the `<html>` element as `data-theme`. When no choice is stored, the CSS `prefers-color-scheme`
 query is authoritative, so the application follows the operating system without JavaScript.
 
+### Authentication
+
+The sign-in screen uses Signal Forms (`@angular/forms/signals`) with a typed model and schema-based
+validation. `AuthService` posts credentials to `POST /auth/login`, decodes the email claim from the
+returned JWT, and stores the session in `localStorage` with an absolute expiry. The client never
+verifies or trusts the token for authorization; roles only shape the interface, while the API remains
+authoritative.
+
+A functional interceptor adds `Authorization: Bearer` to outgoing API requests. When a protected
+request returns `401`, the session is cleared and the user is sent back to `/login` with a return URL.
+`authGuard` protects the application shell, and `guestGuard` keeps authenticated users away from the
+sign-in page.
+
+The JWT payload is decoded without signature verification. Verification belongs to the API; the UI
+only reads the email claim to personalize the header.
+
 ### Signals and modern component APIs
 
 Local state will use `signal()` and `computed()` as the default. `linkedSignal()` is reserved for
@@ -187,18 +212,16 @@ configuration is required.
 
 ### HTTP and API configuration
 
-`provideHttpClient()` is registered at the application root, but no HTTP calls are made in this
-stage. The API origin is exposed through the `API_BASE_URL` injection token in
-`core/config/api-config.ts`. Feature services will inject the token instead of importing environment
-files directly, keeping configuration centralized and testable.
-
-This also leaves room for a single authentication interceptor or functional interceptor chain in the
-authentication stage without duplicating token logic across services.
+`provideHttpClient(withInterceptors([authInterceptor]))` is registered at the application root. The API
+origin is exposed through the `API_BASE_URL` injection token in `core/config/api-config.ts`. Feature
+services inject the token instead of importing environment files directly, and `buildApiUrl()` joins
+the base URL with relative endpoints. This keeps configuration centralized and testable.
 
 ### Forms
 
-No forms exist yet. New forms will use Signal Forms from `@angular/forms/signals` with typed
-models and schema-based validation. Reactive Forms will only be used if a documented limitation makes
+Forms use Signal Forms from `@angular/forms/signals` with typed models and schema-based validation.
+The login form binds native inputs through `[formField]`, submits through `[formRoot]`, and maps API
+failures to an accessible alert. Reactive Forms will only be used if a documented limitation makes
 Signal Forms unsuitable.
 
 ### Styling
@@ -243,7 +266,9 @@ pieces of the system:
 - responsive stacking at tablet and phone widths;
 - light and dark palettes that follow the system until the user chooses otherwise;
 - a three-state theme control (system, light, dark) persisted locally;
-- an off-canvas navigation drawer below 1024px.
+- an off-canvas navigation drawer below 1024px;
+- a focused sign-in screen with a form panel and a supporting feature panel;
+- shared danger tokens for validation and authentication errors.
 
 Decorative gradients, glassmorphism, oversized shadows, and unnecessary cards are deliberately
 avoided.
@@ -261,6 +286,9 @@ avoided.
 - The mobile drawer leaves the tab order when closed, closes on `Escape`, and keeps
   `aria-expanded`/`aria-controls` in sync on its trigger.
 - While the drawer is open, the page behind it cannot scroll.
+- The sign-in form has explicit labels, `autocomplete` hints, `aria-invalid`, and
+  `aria-describedby` links to field errors.
+- Authentication failures use `role="alert"`; the password visibility control exposes `aria-pressed`.
 - Animation is limited to short transitions and is removed for users who prefer reduced motion.
 - The layout remains usable from 320px upward and does not rely on hover.
 - `bypassSecurityTrust` is not used. Direct DOM access is limited to the theme service, which sets a
@@ -272,8 +300,9 @@ later feature must preserve it.
 ## Testing
 
 Vitest runs through the official Angular unit-test builder. The suite covers the root component,
-application shell, sidebar, header, theme preference, overview screen, students placeholder, and
-brand mark input behavior.
+application shell, sidebar, header, theme preference, overview screen, students placeholder, brand
+mark input behavior, JWT decoding, API URL joining, session lifecycle, interceptor behavior, route
+guards, and the login form.
 
 ```bash
 npm test
@@ -292,31 +321,34 @@ npm run test:coverage
 - `feature/frontend-foundation` contains Stage 1.
 - `feature/layout` contains Stage 2 and builds on the Stage 1 branch until the first pull request is
   merged.
+- `feature/authentication` contains Stage 3 and builds on the layout branch.
 - Future stages use one `feature/*` branch each and target `develop` through a pull request.
 
 The frontend repository is independent from the backend repository. No backend files are modified by
 this project.
 
-## Stage 2 scope
+## Stage 3 scope
 
 Included:
 
-- persistent application shell with sidebar, sticky header, and routed content;
-- responsive off-canvas navigation below 1024px;
-- lazy-loaded `Overview` and `Students` routes with page titles;
-- active-route styling and accessible current-page semantics;
-- system/light/dark theme control persisted in `localStorage`;
-- shared design tokens extended with layout dimensions and explicit themes;
-- responsive overview screen and a students placeholder page;
+- public sign-in route with a Signal Forms login form;
+- email format, required, and length validation with accessible messages;
+- JWT session handling with decoded email, role, and absolute expiry;
+- session persistence in `localStorage` with expired-session cleanup;
+- functional interceptor adding `Authorization: Bearer` and handling `401` responses;
+- `authGuard` for the application shell and `guestGuard` for the login route;
+- return-URL navigation after sign-in and after an expired session;
+- mapped errors for invalid credentials, rate limiting, and an unreachable API;
+- account email, role, and sign-out action in the shell header;
+- login layout, responsive behavior, and shared danger tokens;
 - unit tests, lint, and production build verification;
 - project documentation updates.
 
 Excluded:
 
-- login, JWT storage, and route protection;
-- real API requests and student data;
-- student list, filters, pagination, and CRUD;
-- role-aware UI and permission guards.
+- real student data, list, filters, pagination, or CRUD;
+- role-based route permissions inside the students area;
+- token refresh and multi-tab session synchronization.
 
 ## Backend reference
 
@@ -341,8 +373,8 @@ metadata in `meta`.
 
 1. **Foundation** — completed. Project setup, architecture, design tokens, and quality gates.
 2. **Layout** — completed. Application shell, sidebar, header, navigation routes, and theme control.
-3. **Authentication** — next. Login, JWT handling, interceptors, and route protection.
-4. **Student list** — table, search, filters, and pagination.
+3. **Authentication** — completed. Login, JWT handling, interceptors, and route protection.
+4. **Student list** — next. Table, search, filters, and pagination.
 5. **Student management** — create, read, update, and delete flows.
 6. **Roles and permissions** — align the interface with backend access rules.
 7. **Quality** — validation, errors, accessibility, responsiveness, and tests.
