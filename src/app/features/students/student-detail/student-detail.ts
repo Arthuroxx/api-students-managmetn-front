@@ -10,7 +10,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthorizationService } from '../../../core/auth/authorization.service';
-import { readApiErrorMessage } from '../../../core/http/api-error';
+import { describeApiError, type ApiErrorMessages } from '../../../core/http/api-error';
 import { ConfirmDialog } from '../../../shared/confirm-dialog/confirm-dialog';
 import { StudentFeedbackService } from '../student-feedback.service';
 import {
@@ -21,6 +21,21 @@ import {
 } from '../students.format';
 import type { Student } from '../students.models';
 import { StudentsService } from '../students.service';
+
+const LOAD_ERROR_MESSAGES: ApiErrorMessages = {
+  fallback: 'The student could not be loaded. Please try again.',
+  byStatus: {
+    403: 'You do not have permission to view this student.',
+  },
+};
+
+const DELETE_ERROR_MESSAGES: ApiErrorMessages = {
+  fallback: 'The student could not be deleted. Please try again.',
+  byStatus: {
+    403: 'You do not have permission to delete student records.',
+    404: 'This student no longer exists.',
+  },
+};
 
 @Component({
   selector: 'sms-student-detail',
@@ -109,7 +124,7 @@ export class StudentDetail {
         },
         error: (error: unknown) => {
           this.deleting.set(false);
-          this.deleteError.set(this.describeDeleteError(error));
+          this.deleteError.set(describeApiError(error, DELETE_ERROR_MESSAGES));
         },
       });
   }
@@ -143,47 +158,11 @@ export class StudentDetail {
           ) {
             this.notFound.set(true);
           } else {
-            this.error.set(this.describeLoadError(error));
+            this.error.set(describeApiError(error, LOAD_ERROR_MESSAGES));
           }
 
           this.loading.set(false);
         },
       });
-  }
-
-  private describeLoadError(error: unknown): string {
-    if (!(error instanceof HttpErrorResponse)) {
-      return 'The student could not be loaded. Please try again.';
-    }
-
-    switch (error.status) {
-      case 403:
-        return 'You do not have permission to view this student.';
-      case 0:
-        return 'The API is unreachable. Check that it is running and try again.';
-      default:
-        return (
-          readApiErrorMessage(error.error) ?? 'The student could not be loaded. Please try again.'
-        );
-    }
-  }
-
-  private describeDeleteError(error: unknown): string {
-    if (!(error instanceof HttpErrorResponse)) {
-      return 'The student could not be deleted. Please try again.';
-    }
-
-    switch (error.status) {
-      case 403:
-        return 'You do not have permission to delete student records.';
-      case 404:
-        return 'This student no longer exists.';
-      case 0:
-        return 'The API is unreachable. Check that it is running and try again.';
-      default:
-        return (
-          readApiErrorMessage(error.error) ?? 'The student could not be deleted. Please try again.'
-        );
-    }
   }
 }

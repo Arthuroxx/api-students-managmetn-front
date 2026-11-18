@@ -4,6 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { AuthService } from '../../../core/auth/auth.service';
+import { expectNoA11yViolations } from '../../../testing/a11y';
 import { Login } from './login';
 
 @Component({ template: '' })
@@ -175,5 +176,12 @@ describe('Login', () => {
 
     expect(input?.type).toBe('text');
     expect(reveal?.getAttribute('aria-label')).toBe('Hide password');
+  });
+
+  it('should have no WCAG 2.2 AA violations', async () => {
+    const fixture = TestBed.createComponent(Login);
+    await fixture.whenStable();
+
+    await expectNoA11yViolations(fixture.nativeElement as HTMLElement);
   });
 });

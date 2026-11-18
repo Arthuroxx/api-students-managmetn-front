@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output, viewChild } from '@angular/core';
+import type { ElementRef } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { BrandMark } from '../../shared/brand/brand-mark';
 import { NAV_ITEMS } from '../navigation';
@@ -16,4 +17,9 @@ export class AppSidebar {
   readonly navigated = output<void>();
 
   protected readonly items = NAV_ITEMS;
+  private readonly sidebar = viewChild<ElementRef<HTMLElement>>('sidebar');
+
+  focusInitial(): void {
+    this.sidebar()?.nativeElement.focus();
+  }
 }

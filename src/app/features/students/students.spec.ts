@@ -5,6 +5,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { Subject, of, throwError } from 'rxjs';
 import { AuthorizationService } from '../../core/auth/authorization.service';
+import { expectNoA11yViolations } from '../../testing/a11y';
 import type { PaginatedStudents, Student } from './students.models';
 import { Students } from './students';
 import { StudentsService } from './students.service';
@@ -396,5 +397,40 @@ describe('Students', () => {
     expect(
       (fixture.nativeElement as HTMLElement).querySelector('.students__state .students__action'),
     ).toBeNull();
+  });
+
+  it('should have no WCAG 2.2 AA violations in the loaded directory', async () => {
+    list.mockReturnValue(of(createPage()));
+
+    const fixture = TestBed.createComponent(Students);
+    await fixture.whenStable();
+
+    await expectNoA11yViolations(fixture.nativeElement as HTMLElement);
+  });
+
+  it('should have no WCAG 2.2 AA violations in the empty state', async () => {
+    list.mockReturnValue(of({ data: [], meta: { total: 0, page: 1, limit: 10, totalPages: 0 } }));
+
+    const fixture = TestBed.createComponent(Students);
+    await fixture.whenStable();
+
+    await expectNoA11yViolations(fixture.nativeElement as HTMLElement);
+  });
+
+  it('should have no WCAG 2.2 AA violations in the error state', async () => {
+    list.mockReturnValue(
+      throwError(
+        () =>
+          new HttpErrorResponse({
+            status: 500,
+            error: { statusCode: 500, message: 'Database unavailable', error: 'Server Error' },
+          }),
+      ),
+    );
+
+    const fixture = TestBed.createComponent(Students);
+    await fixture.whenStable();
+
+    await expectNoA11yViolations(fixture.nativeElement as HTMLElement);
   });
 });

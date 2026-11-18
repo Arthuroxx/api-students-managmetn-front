@@ -240,6 +240,21 @@
   }
 }
 
+@media (max-width: 22.5rem) {
+  .hero__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .stage-badge {
+    text-align: center;
+  }
+
+  .status-panel {
+    padding: var(--space-4);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hero,
   .status-panel {

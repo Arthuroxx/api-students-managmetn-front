@@ -12,7 +12,7 @@ import {
 } from '@angular/forms/signals';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-import { readApiErrorMessage } from '../../../core/http/api-error';
+import { describeApiError, type ApiErrorMessages } from '../../../core/http/api-error';
 import { StudentFeedbackService } from '../student-feedback.service';
 import { toDateInputValue, todayIsoDate } from '../students.format';
 import type { Student, StudentInput, UpdateStudentInput } from '../students.models';
@@ -20,6 +20,24 @@ import { StudentsService } from '../students.service';
 
 type StudentField = keyof StudentInput;
 type MutableStudentInput = { -readonly [K in keyof StudentInput]?: StudentInput[K] };
+
+const LOAD_ERROR_MESSAGES: ApiErrorMessages = {
+  fallback: 'The student could not be loaded. Please try again.',
+  byStatus: {
+    403: 'You do not have permission to view this student.',
+  },
+};
+
+const SAVE_ERROR_MESSAGES: ApiErrorMessages = {
+  fallback: 'The student could not be saved. Please try again.',
+  byStatus: {
+    400: 'Check the form values and try again.',
+    403: 'You do not have permission to save student records.',
+    404: 'This student no longer exists.',
+    409: 'A student with this email address or document number already exists.',
+  },
+  preferApiMessageFor: [400, 409],
+};
 
 @Component({
   selector: 'sms-student-editor',
@@ -154,7 +172,7 @@ export class StudentEditor {
           ) {
             this.notFound.set(true);
           } else {
-            this.loadError.set(this.describeLoadError(error));
+            this.loadError.set(describeApiError(error, LOAD_ERROR_MESSAGES));
           }
 
           this.loading.set(false);
@@ -185,7 +203,7 @@ export class StudentEditor {
       this.feedback.set('Student created successfully.');
       await this.router.navigate(['/students', created.id]);
     } catch (error) {
-      this.formError.set(this.describeSaveError(error));
+      this.formError.set(describeApiError(error, SAVE_ERROR_MESSAGES));
     }
   }
 
@@ -205,49 +223,6 @@ export class StudentEditor {
     }
 
     return changes;
-  }
-
-  private describeLoadError(error: unknown): string {
-    if (!(error instanceof HttpErrorResponse)) {
-      return 'The student could not be loaded. Please try again.';
-    }
-
-    switch (error.status) {
-      case 403:
-        return 'You do not have permission to view this student.';
-      case 0:
-        return 'The API is unreachable. Check that it is running and try again.';
-      default:
-        return (
-          readApiErrorMessage(error.error) ?? 'The student could not be loaded. Please try again.'
-        );
-    }
-  }
-
-  private describeSaveError(error: unknown): string {
-    if (!(error instanceof HttpErrorResponse)) {
-      return 'The student could not be saved. Please try again.';
-    }
-
-    switch (error.status) {
-      case 400:
-        return readApiErrorMessage(error.error) ?? 'Check the form values and try again.';
-      case 403:
-        return 'You do not have permission to save student records.';
-      case 404:
-        return 'This student no longer exists.';
-      case 409:
-        return (
-          readApiErrorMessage(error.error) ??
-          'A student with this email address or document number already exists.'
-        );
-      case 0:
-        return 'The API is unreachable. Check that it is running and try again.';
-      default:
-        return (
-          readApiErrorMessage(error.error) ?? 'The student could not be saved. Please try again.'
-        );
-    }
   }
 }
 

@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { App } from './app';
+import { expectNoA11yViolations } from './testing/a11y';
 
 describe('App', () => {
   beforeEach(async () => {
@@ -26,5 +27,12 @@ describe('App', () => {
 
     expect(skipLink?.textContent).toContain('Skip to main content');
     expect(skipLink?.getAttribute('href')).toBe('#main-content');
+  });
+
+  it('should have no WCAG 2.2 AA violations', async () => {
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+
+    await expectNoA11yViolations(fixture.nativeElement as HTMLElement);
   });
 });

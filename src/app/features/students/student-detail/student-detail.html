@@ -6,23 +6,27 @@
   </nav>
 
   @if (loading()) {
-    <div class="detail__loading" aria-busy="true">
+    <div class="detail__loading loading-panel" aria-busy="true">
       <p class="sr-only" role="status">Loading student</p>
       <span class="skeleton-bar skeleton-bar--title"></span>
       <span class="skeleton-bar skeleton-bar--wide"></span>
       <span class="skeleton-bar skeleton-bar--medium"></span>
     </div>
   } @else if (notFound()) {
-    <div class="detail__state" role="alert">
+    <div class="detail__state state-panel state-panel--card" role="alert">
       <h1 id="detail-title">Student not found</h1>
       <p>The record may have been deleted or the link is invalid.</p>
-      <a class="detail__state-action" routerLink="/students">Back to students</a>
+      <a class="detail__state-action state-panel__action" routerLink="/students"
+        >Back to students</a
+      >
     </div>
   } @else if (error(); as message) {
-    <div class="detail__state detail__state--error" role="alert">
+    <div class="detail__state state-panel state-panel--card state-panel--error" role="alert">
       <h1 id="detail-title">Student could not be loaded</h1>
       <p>{{ message }}</p>
-      <button type="button" class="detail__state-action" (click)="retry()">Try again</button>
+      <button type="button" class="detail__state-action state-panel__action" (click)="retry()">
+        Try again
+      </button>
     </div>
   } @else if (student(); as record) {
     @if (notice(); as message) {

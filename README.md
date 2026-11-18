@@ -3,10 +3,11 @@
 A focused, accessible web client for the Student Management API. This project is developed
 independently from the backend and uses Angular 22 as its application framework.
 
-The repository is currently in the **roles and permissions stage**. It contains the project setup,
-architecture, design tokens, quality tooling, the application shell, JWT authentication, a paginated
-student directory, create/read/update/delete flows, and role-aware authorization that matches the API
-contract.
+The repository is currently in the **quality stage**. It contains the project setup, architecture,
+design tokens, quality tooling, the application shell, JWT authentication, a paginated student
+directory, create/read/update/delete flows, role-aware authorization that matches the API contract,
+and a unified quality layer: consistent validations and error handling, WCAG 2.2 AA accessibility,
+responsive layouts from 320px, and consistent loading and empty states.
 
 ## Table of contents
 
@@ -22,7 +23,7 @@ contract.
 - [Quality and accessibility](#quality-and-accessibility)
 - [Testing](#testing)
 - [Git workflow](#git-workflow)
-- [Stage 6 scope](#stage-6-scope)
+- [Stage 7 scope](#stage-7-scope)
 - [Backend reference](#backend-reference)
 - [Roadmap](#roadmap)
 
@@ -40,21 +41,22 @@ confirmation before deletion.
 
 ## Stack
 
-| Concern           | Choice                                                  |
-| ----------------- | ------------------------------------------------------- |
-| Framework         | Angular 22.2.6                                          |
-| Build tooling     | Angular CLI 22.2.7                                      |
-| Language          | TypeScript 6.0.3 with `strict` enabled                  |
-| Application style | Standalone components, no NgModules                     |
-| Change detection  | Zoneless with signals                                   |
-| Routing           | Angular Router with lazy-loaded feature routes          |
-| Styling           | SCSS and CSS custom properties                          |
-| HTTP              | `HttpClient` configured at the application root         |
-| Forms             | Signal Forms in the login screen                        |
-| Unit tests        | Vitest 5 through the official Angular unit-test builder |
-| Linting           | ESLint 10 with `angular-eslint` and `typescript-eslint` |
-| Formatting        | Prettier 3                                              |
-| Package manager   | npm 11                                                  |
+| Concern             | Choice                                                  |
+| ------------------- | ------------------------------------------------------- |
+| Framework           | Angular 22.2.6                                          |
+| Build tooling       | Angular CLI 22.2.7                                      |
+| Language            | TypeScript 6.0.3 with `strict` enabled                  |
+| Application style   | Standalone components, no NgModules                     |
+| Change detection    | Zoneless with signals                                   |
+| Routing             | Angular Router with lazy-loaded feature routes          |
+| Styling             | SCSS and CSS custom properties                          |
+| HTTP                | `HttpClient` configured at the application root         |
+| Forms               | Signal Forms in the login screen                        |
+| Unit tests          | Vitest 5 through the official Angular unit-test builder |
+| Accessibility tests | axe-core 4 against the WCAG 2.2 A/AA rule set           |
+| Linting             | ESLint 10 with `angular-eslint` and `typescript-eslint` |
+| Formatting          | Prettier 3                                              |
+| Package manager     | npm 11                                                  |
 
 ## Requirements
 
@@ -112,7 +114,7 @@ src/
 │   ├── core/                    # Cross-cutting configuration with no feature ownership
 │   │   ├── auth/                # Session state, JWT decoding, interceptor, and guards
 │   │   ├── config/              # API base URL and future global configuration
-│   │   ├── http/                # URL and API error helpers shared by API services
+│   │   ├── http/                # URL helpers and unified API error mapping
 │   │   └── theme/               # System, light, and dark theme preference
 │   ├── features/                # Business features, grouped by capability
 │   │   ├── auth/                # Public sign-in route
@@ -128,6 +130,8 @@ src/
 │   ├── shared/                  # Reusable, presentation-only building blocks
 │   │   ├── brand/               # Product brand mark
 │   │   └── confirm-dialog/      # Native, accessible confirmation dialog
+│   ├── testing/                 # Test-only helpers, excluded from the application build
+│   │   └── a11y.ts              # axe-core WCAG 2.2 AA assertion helper
 │   ├── app.config.ts            # Application providers
 │   ├── app.html                 # Root template
 │   ├── app.routes.ts            # Top-level routes
@@ -139,7 +143,7 @@ src/
 │   ├── environment.ts           # Production defaults
 │   └── environment.development.ts
 ├── styles/
-│   ├── _base.scss               # Global element styles
+│   ├── _base.scss               # Global element styles and shared state/loading utilities
 │   ├── _reset.scss              # Minimal reset
 │   └── _tokens.scss             # Color, type, spacing, shape, and motion tokens
 ├── index.html
@@ -253,6 +257,21 @@ API failures are mapped to actionable messages: `400` for invalid values, `403` 
 permissions, `404` for removed records, `409` for duplicate email addresses or document numbers, and
 `0` for an unreachable API.
 
+### Error handling and state consistency
+
+A single `describeApiError(error, messages)` helper in `core/http/api-error.ts` resolves every API
+failure through one documented order: non-HTTP errors use a fallback, status `0` always reports an
+unreachable API, mapped statuses take priority, and the API envelope message is used as a last resort
+(or first for statuses listed in `preferApiMessageFor`, such as validation and conflicts). Each
+feature supplies its own `ApiErrorMessages` copy, so wording stays specific while the resolution rules
+stay identical. The duplicated per-feature error mappers were removed.
+
+Loading, empty, and error states share a small set of global utilities in `styles/_base.scss`:
+`.state-panel`, `.state-panel--center`, `.state-panel--card`, `.state-panel--error`,
+`.state-panel__icon`, `.state-panel__action`, and `.loading-panel`. Features compose these classes
+instead of redefining frames, icons, and actions, which keeps the four states visually consistent
+across the directory, detail, editor, and forbidden pages without introducing a wrapper component.
+
 ### Signals and modern component APIs
 
 Local state will use `signal()` and `computed()` as the default. `linkedSignal()` is reserved for
@@ -334,6 +353,7 @@ pieces of the system:
 - an editor form with inline validation and a responsive two-column layout;
 - a native confirmation dialog with busy, error, and reduced-motion states;
 - a compact read-only access badge for users without management permissions;
+- shared state and loading panels that keep empty, error, and not-found states consistent;
 
 Decorative gradients, glassmorphism, oversized shadows, and unnecessary cards are deliberately
 avoided.
@@ -349,8 +369,10 @@ avoided.
 - Focus indicators are visible and use a consistent token.
 - Navigation links expose `aria-current="page"` on the active route.
 - The mobile drawer leaves the tab order when closed, closes on `Escape`, and keeps
-  `aria-expanded`/`aria-controls` in sync on its trigger.
-- While the drawer is open, the page behind it cannot scroll.
+  `aria-expanded`/`aria-controls` in sync on its trigger. Opening it moves focus into the
+  navigation, and closing it returns focus to the trigger.
+- While the drawer is open, the page behind it is inert: it cannot scroll and its content leaves
+  the tab order.
 - The sign-in form has explicit labels, `autocomplete` hints, `aria-invalid`, and
   `aria-describedby` links to field errors.
 - Authentication failures use `role="alert"`; the password visibility control exposes `aria-pressed`.
@@ -368,22 +390,33 @@ avoided.
 - Loading state is exposed through `aria-busy` and a polite live region; errors use `role="alert"`.
 - Disabled pagination controls remain visible so the page structure does not shift.
 - Animation is limited to short transitions and is removed for users who prefer reduced motion.
-- The layout remains usable from 320px upward and does not rely on hover.
+- Interactive controls keep a minimum target size of 24×24 CSS pixels, meeting WCAG 2.2 SC 2.5.8.
+- The layout remains usable from 320px upward, with a small-phone tier that tightens padding and
+  stacks actions; it does not rely on hover.
 - `bypassSecurityTrust` is not used. Direct DOM access is limited to the theme service, which sets a
   single attribute on the document root.
 
-WCAG 2.2 AA is the target for the completed application. This stage establishes the baseline; each
-later feature must preserve it.
+WCAG 2.2 Level AA is the target and the achieved level for the completed application. Every
+component spec runs axe-core against the WCAG 2.2 A/AA rule set through the shared
+`testing/a11y.ts` helper, so regressions fail the suite. Rules that need a real rendering engine
+(`color-contrast`, `link-in-text-block`, `scrollable-region-focusable`, and `target-size`) are
+disabled under jsdom and verified manually; contrast is covered by the design tokens and target size
+by the minimum-size rule above.
 
 ## Testing
 
 Vitest runs through the official Angular unit-test builder. The suite covers the root component,
 application shell, sidebar, header, theme preference, overview screen, brand mark input behavior,
-JWT decoding, API URL joining, session lifecycle, interceptor behavior, authorization service
-permissions, role guard redirects, route configuration, the forbidden page, the login form, the
-student service and its CRUD requests, the directory's loading, filtering, pagination, deletion,
-empty, and error states, role-aware action visibility, the create and edit flows, the detail page
-states, the confirmation dialog, and the shared formatting helpers.
+JWT decoding, API URL joining, the unified API error mapping, session lifecycle, interceptor behavior,
+authorization service permissions, role guard redirects, route configuration, the forbidden page, the
+login form, the student service and its CRUD requests, the directory's loading, filtering, pagination,
+deletion, empty, and error states, role-aware action visibility, the create and edit flows, the detail
+page states, the confirmation dialog, and the shared formatting helpers.
+
+Accessibility is tested in the same run. Component specs call the shared `testing/a11y.ts` helper,
+which runs axe-core against the WCAG 2.2 A/AA tags after the DOM is stable and fails on any violation.
+The loaded, empty, error, and not-found states of the directory, detail, and editor pages are all
+asserted.
 
 ```bash
 npm test
@@ -406,34 +439,35 @@ npm run test:coverage
 - `feature/student-list` contains Stage 4 and builds on the authentication branch.
 - `feature/student-management` contains Stage 5 and builds on the student-list branch.
 - `feature/role-permissions` contains Stage 6 and builds on the student-management branch.
+- `feature/quality` contains Stage 7 and builds on the role-permissions branch.
 - Future stages use one `feature/*` branch each and target `develop` through a pull request.
 
 The frontend repository is independent from the backend repository. No backend files are modified by
 this project.
 
-## Stage 6 scope
+## Stage 7 scope
 
 Included:
 
-- `AuthorizationService`, a single source of role-derived decisions built on the existing session;
-- `ADMIN` capabilities for reading and managing students, and read-only `USER` capabilities;
-- a functional `roleGuard` that reads route `data.roles` and distinguishes `401` from `403`;
-- role-protected `/students` and `/students/:id` routes plus administrator-only `/students/new` and
-  `/students/:id/edit` routes;
-- an authenticated `/forbidden` page for users without the required role;
-- management controls hidden from `USER` in the directory and detail page, with a read-only badge;
-- existing `401` logout and redirect behavior preserved, with `403` responses kept actionable and
-  non-destructive to the session;
-- unit tests for permissions, protected routes, unauthorized navigation, `401`, `403`, and action
-  visibility;
+- a unified `describeApiError(error, messages)` helper in `core/http/api-error.ts` with a documented
+  resolution order and per-feature `ApiErrorMessages`, replacing the duplicated error mappers in the
+  login, directory, detail, and editor flows;
+- shared `.state-panel*` and `.loading-panel` utilities in `styles/_base.scss` so empty, error,
+  not-found, and loading states are visually consistent across features;
+- WCAG 2.2 AA accessibility: `axe-core` runs the WCAG 2.2 A/AA rule set inside the component specs
+  through the shared `testing/a11y.ts` helper, and interactive controls meet the 24×24 CSS pixel
+  minimum target size (SC 2.5.8);
+- responsive layouts that stay usable from 320px wide, with a small-phone tier that tightens padding
+  and stacks actions;
+- unit and accessibility tests for the shared error helper and every page state;
 - documentation updates and full test, lint, format, and production build verification.
 
 Excluded:
 
-- Stage 7 quality work and Stage 8 finalization;
-- role management screens or user administration;
-- server-side permission changes; the backend remains read-only for this project;
-- route-level per-record ownership rules, optimistic updates, and audit history.
+- Stage 8 finalization and deployment preparation;
+- visual redesign or changes to the established design tokens and identity;
+- backend changes; the API remains read-only for this project;
+- end-to-end browser automation and screenshot-based visual regression testing.
 
 ## Backend reference
 
@@ -493,5 +527,6 @@ newest first. The response shape is:
 5. **Student management** — completed. Create, detail, edit, and delete flows with validation.
 6. **Roles and permissions** — completed. Role-derived authorization, protected routes, and
    role-aware interface behavior.
-7. **Quality** — validation, errors, accessibility, responsiveness, and tests.
+7. **Quality** — completed. Unified validations and error handling, WCAG 2.2 AA accessibility,
+   responsiveness from 320px, consistent loading and empty states, and accessibility tests.
 8. **Finalization** — documentation and deployment preparation.

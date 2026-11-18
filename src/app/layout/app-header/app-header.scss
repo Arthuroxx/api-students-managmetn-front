@@ -149,6 +149,16 @@
   }
 }
 
+@media (max-width: 22.5rem) {
+  .app-header {
+    padding-inline: var(--space-3);
+  }
+
+  .app-header__actions {
+    gap: var(--space-2);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .app-header__menu,
   .app-header__icon-button {

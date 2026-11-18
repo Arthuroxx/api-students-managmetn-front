@@ -1,6 +1,7 @@
 import { Component, signal } from '@angular/core';
 import type { ComponentFixture } from '@angular/core/testing';
 import { TestBed } from '@angular/core/testing';
+import { expectNoA11yViolations } from '../../testing/a11y';
 import { ConfirmDialog } from './confirm-dialog';
 
 @Component({
@@ -142,5 +143,14 @@ describe('ConfirmDialog', () => {
     const element = await settle(fixture);
 
     expect(element.querySelector('dialog')?.hasAttribute('open')).toBe(false);
+  });
+
+  it('should have no WCAG 2.2 AA violations while open', async () => {
+    const fixture = await render();
+
+    fixture.componentInstance.open.set(true);
+    const element = await settle(fixture);
+
+    await expectNoA11yViolations(element);
   });
 });

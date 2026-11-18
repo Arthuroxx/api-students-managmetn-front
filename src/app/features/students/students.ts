@@ -1,4 +1,3 @@
-import { HttpErrorResponse } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -11,7 +10,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import type { Subscription } from 'rxjs';
 import { AuthorizationService } from '../../core/auth/authorization.service';
-import { readApiErrorMessage } from '../../core/http/api-error';
+import { describeApiError, type ApiErrorMessages } from '../../core/http/api-error';
 import { ConfirmDialog } from '../../shared/confirm-dialog/confirm-dialog';
 import { StudentFeedbackService } from './student-feedback.service';
 import {
@@ -32,6 +31,22 @@ import { STUDENT_PAGE_SIZES, isStudentPageSize } from './students.models';
 import { StudentsService } from './students.service';
 
 const FILTER_DEBOUNCE_MS = 300;
+
+const LIST_ERROR_MESSAGES: ApiErrorMessages = {
+  fallback: 'Students could not be loaded. Please try again.',
+  byStatus: {
+    400: 'The filters are invalid. Adjust them and try again.',
+    403: 'You do not have permission to view students.',
+  },
+};
+
+const DELETE_ERROR_MESSAGES: ApiErrorMessages = {
+  fallback: 'The student could not be deleted. Please try again.',
+  byStatus: {
+    403: 'You do not have permission to delete student records.',
+    404: 'This student no longer exists.',
+  },
+};
 
 interface FilterDraft {
   firstName: string;
@@ -236,7 +251,7 @@ export class Students {
         },
         error: (error: unknown) => {
           this.deleting.set(false);
-          this.deleteError.set(this.describeDeleteError(error));
+          this.deleteError.set(describeApiError(error, DELETE_ERROR_MESSAGES));
         },
       });
   }
@@ -297,47 +312,9 @@ export class Students {
         error: (error: unknown) => {
           this.students.set([]);
           this.meta.set(null);
-          this.error.set(this.describeListError(error));
+          this.error.set(describeApiError(error, LIST_ERROR_MESSAGES));
           this.loading.set(false);
         },
       });
-  }
-
-  private describeListError(error: unknown): string {
-    if (!(error instanceof HttpErrorResponse)) {
-      return 'Students could not be loaded. Please try again.';
-    }
-
-    switch (error.status) {
-      case 400:
-        return 'The filters are invalid. Adjust them and try again.';
-      case 403:
-        return 'You do not have permission to view students.';
-      case 0:
-        return 'The API is unreachable. Check that it is running and try again.';
-      default:
-        return (
-          readApiErrorMessage(error.error) ?? 'Students could not be loaded. Please try again.'
-        );
-    }
-  }
-
-  private describeDeleteError(error: unknown): string {
-    if (!(error instanceof HttpErrorResponse)) {
-      return 'The student could not be deleted. Please try again.';
-    }
-
-    switch (error.status) {
-      case 403:
-        return 'You do not have permission to delete student records.';
-      case 404:
-        return 'This student no longer exists.';
-      case 0:
-        return 'The API is unreachable. Check that it is running and try again.';
-      default:
-        return (
-          readApiErrorMessage(error.error) ?? 'The student could not be deleted. Please try again.'
-        );
-    }
   }
 }

@@ -1,12 +1,20 @@
-import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormField, FormRoot, email, form, maxLength, required } from '@angular/forms/signals';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import type { LoginCredentials } from '../../../core/auth/auth.models';
 import { AuthService } from '../../../core/auth/auth.service';
-import { readApiErrorMessage } from '../../../core/http/api-error';
+import { describeApiError, type ApiErrorMessages } from '../../../core/http/api-error';
 import { BrandMark } from '../../../shared/brand/brand-mark';
+
+const LOGIN_ERROR_MESSAGES: ApiErrorMessages = {
+  fallback: 'Something went wrong. Please try again.',
+  unmappedFallback: 'Sign-in failed. Please try again.',
+  byStatus: {
+    401: 'Invalid email or password.',
+    429: 'Too many sign-in attempts. Wait a moment and try again.',
+  },
+};
 
 @Component({
   selector: 'sms-login',
@@ -43,7 +51,7 @@ export class Login {
             await firstValueFrom(this.auth.login(field().value()));
             await this.router.navigateByUrl(this.returnUrl());
           } catch (error) {
-            this.formError.set(this.describeError(error));
+            this.formError.set(describeApiError(error, LOGIN_ERROR_MESSAGES));
           }
 
           return undefined;
@@ -74,22 +82,5 @@ export class Login {
     }
 
     return value;
-  }
-
-  private describeError(error: unknown): string {
-    if (!(error instanceof HttpErrorResponse)) {
-      return 'Something went wrong. Please try again.';
-    }
-
-    switch (error.status) {
-      case 401:
-        return 'Invalid email or password.';
-      case 429:
-        return 'Too many sign-in attempts. Wait a moment and try again.';
-      case 0:
-        return 'The API is unreachable. Check that it is running and try again.';
-      default:
-        return readApiErrorMessage(error.error) ?? 'Sign-in failed. Please try again.';
-    }
   }
 }

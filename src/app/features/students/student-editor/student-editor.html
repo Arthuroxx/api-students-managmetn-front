@@ -19,23 +19,27 @@
   </header>
 
   @if (loading()) {
-    <div class="editor__loading" aria-busy="true">
+    <div class="editor__loading loading-panel" aria-busy="true">
       <p class="sr-only" role="status">Loading student</p>
       <span class="skeleton-bar skeleton-bar--title"></span>
       <span class="skeleton-bar skeleton-bar--wide"></span>
       <span class="skeleton-bar skeleton-bar--medium"></span>
     </div>
   } @else if (notFound()) {
-    <div class="editor__state" role="alert">
+    <div class="editor__state state-panel state-panel--card" role="alert">
       <h2>Student not found</h2>
       <p>The record may have been deleted or the link is invalid.</p>
-      <a class="editor__state-action" routerLink="/students">Back to students</a>
+      <a class="editor__state-action state-panel__action" routerLink="/students"
+        >Back to students</a
+      >
     </div>
   } @else if (loadError(); as message) {
-    <div class="editor__state editor__state--error" role="alert">
+    <div class="editor__state state-panel state-panel--card state-panel--error" role="alert">
       <h2>Student could not be loaded</h2>
       <p>{{ message }}</p>
-      <button type="button" class="editor__state-action" (click)="retryLoad()">Try again</button>
+      <button type="button" class="editor__state-action state-panel__action" (click)="retryLoad()">
+        Try again
+      </button>
     </div>
   } @else {
     <form class="editor__form" [formRoot]="editorForm" novalidate>

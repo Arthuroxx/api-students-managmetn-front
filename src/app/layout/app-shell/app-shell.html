@@ -10,7 +10,7 @@
     ></button>
   }
 
-  <div class="shell__body">
+  <div class="shell__body" [attr.inert]="sidebarOpen() ? '' : null">
     <sms-app-header
       [title]="pageTitle()"
       [menuExpanded]="sidebarOpen()"

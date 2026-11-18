@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { expectNoA11yViolations } from '../../testing/a11y';
 import { Forbidden } from './forbidden';
 
 function text(element: HTMLElement, selector: string): string {
@@ -25,5 +26,17 @@ describe('Forbidden', () => {
     expect(text(element, '.forbidden__code')).toBe('403');
     expect(text(element, '.forbidden__lede')).toContain('does not have permission');
     expect(links).toEqual(['/students', '/']);
+  });
+
+  it('should have no WCAG 2.2 AA violations', async () => {
+    await TestBed.configureTestingModule({
+      imports: [Forbidden],
+      providers: [provideRouter([])],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(Forbidden);
+    await fixture.whenStable();
+
+    await expectNoA11yViolations(fixture.nativeElement as HTMLElement);
   });
 });

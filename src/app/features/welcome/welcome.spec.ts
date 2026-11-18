@@ -1,6 +1,7 @@
 import { VERSION } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { expectNoA11yViolations } from '../../testing/a11y';
 import { Welcome } from './welcome';
 
 describe('Welcome', () => {
@@ -30,5 +31,12 @@ describe('Welcome', () => {
     const element = fixture.nativeElement as HTMLElement;
 
     expect(element.textContent).toContain(VERSION.full);
+  });
+
+  it('should have no WCAG 2.2 AA violations', async () => {
+    const fixture = TestBed.createComponent(Welcome);
+    await fixture.whenStable();
+
+    await expectNoA11yViolations(fixture.nativeElement as HTMLElement);
   });
 });
