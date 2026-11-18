@@ -1,0 +1,317 @@
+:host {
+  display: block;
+  min-height: 100dvh;
+}
+
+.login {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr);
+  min-height: 100dvh;
+}
+
+.login:focus {
+  outline: none;
+}
+
+.login__pane {
+  display: grid;
+  place-items: center;
+  padding: clamp(var(--space-6), 6vw, var(--space-16)) clamp(var(--space-5), 5vw, var(--space-12));
+}
+
+.login__panel {
+  width: 100%;
+  max-width: 25rem;
+}
+
+.login__header {
+  margin-top: clamp(var(--space-8), 8vh, var(--space-14));
+}
+
+.login__eyebrow {
+  color: var(--color-accent);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.login__header h1 {
+  margin-top: var(--space-3);
+  color: var(--color-text);
+  font-size: clamp(1.75rem, 3vw, var(--font-size-2xl));
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+.login__lede {
+  margin-top: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+
+.login__form {
+  display: grid;
+  gap: var(--space-5);
+  margin-top: var(--space-8);
+}
+
+.login__alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-danger-border);
+  border-radius: var(--radius-md);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+
+.login__alert svg {
+  flex: none;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-top: 0.125rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+}
+
+.login__field {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.login__field label {
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+
+.login__field input {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.login__field input::placeholder {
+  color: var(--color-text-subtle);
+}
+
+.login__field input:hover {
+  border-color: var(--color-text-subtle);
+}
+
+.login__field input:focus-visible {
+  border-color: var(--color-focus);
+  outline: 2px solid color-mix(in srgb, var(--color-focus) 28%, transparent);
+  outline-offset: 0;
+}
+
+.login__field input[aria-invalid='true'] {
+  border-color: var(--color-danger);
+}
+
+.login__password {
+  position: relative;
+}
+
+.login__password input {
+  padding-right: 2.75rem;
+}
+
+.login__reveal {
+  position: absolute;
+  top: 50%;
+  right: 0.3125rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.125rem;
+  height: 2.125rem;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-subtle);
+  transform: translateY(-50%);
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.login__reveal:hover {
+  background: var(--color-surface-muted);
+  color: var(--color-text);
+}
+
+.login__reveal svg {
+  width: 1.125rem;
+  height: 1.125rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.login__field-error {
+  color: var(--color-danger);
+  font-size: var(--font-size-xs);
+  line-height: 1.5;
+}
+
+.login__submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  margin-top: var(--space-1);
+  padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.login__submit:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+
+.login__submit:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.login__note {
+  margin-top: var(--space-6);
+  color: var(--color-text-subtle);
+  font-size: var(--font-size-xs);
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+
+.login__aside {
+  display: grid;
+  place-items: center;
+  padding: clamp(var(--space-8), 6vw, var(--space-16));
+  border-left: 1px solid var(--color-border);
+  background:
+    radial-gradient(circle at 20% 15%, var(--color-accent-soft), transparent 55%),
+    var(--color-surface-muted);
+}
+
+.login__aside-content {
+  width: 100%;
+  max-width: 26rem;
+}
+
+.login__aside-eyebrow {
+  color: var(--color-text-subtle);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.login__aside h2 {
+  margin-top: var(--space-3);
+  color: var(--color-text);
+  font-size: clamp(1.5rem, 2.6vw, 2rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+.login__features {
+  display: grid;
+  gap: var(--space-5);
+  margin-top: var(--space-8);
+  padding: 0;
+  list-style: none;
+}
+
+.login__features li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.login__features li > span:last-child {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.login__feature-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-accent);
+}
+
+.login__feature-icon svg {
+  width: 1.125rem;
+  height: 1.125rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.login__features strong {
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.login__features span span {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  line-height: 1.55;
+}
+
+@media (max-width: 56rem) {
+  .login {
+    grid-template-columns: 1fr;
+  }
+
+  .login__aside {
+    display: none;
+  }
+}
+
+@media (max-width: 22.5rem) {
+  .login__pane {
+    padding-inline: var(--space-4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login__field input,
+  .login__reveal,
+  .login__submit {
+    transition: none;
+  }
+}

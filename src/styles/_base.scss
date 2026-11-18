@@ -1,0 +1,291 @@
+html {
+  background-color: var(--color-bg);
+}
+
+body {
+  min-width: 20rem;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+:focus-visible {
+  border-radius: var(--radius-sm);
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+::selection {
+  background: var(--color-accent-soft);
+  color: var(--color-text);
+}
+
+.skeleton-bar {
+  display: block;
+  height: 0.75rem;
+  border-radius: var(--radius-full);
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-muted) 25%,
+    var(--color-border-subtle) 37%,
+    var(--color-surface-muted) 63%
+  );
+  background-size: 400% 100%;
+  animation: skeleton-shimmer 1.4s ease infinite;
+}
+
+.skeleton-bar--avatar {
+  flex: none;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-full);
+}
+
+.skeleton-bar--title {
+  width: 11rem;
+  height: 1.25rem;
+}
+
+.skeleton-bar--wide {
+  flex: 1;
+  max-width: 16rem;
+}
+
+.skeleton-bar--medium {
+  width: 7rem;
+}
+
+.skeleton-bar--short {
+  width: 4.5rem;
+}
+
+.skeleton-bar--tiny {
+  width: 3rem;
+}
+
+@keyframes skeleton-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+
+  to {
+    background-position: 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-bar {
+    animation: none;
+  }
+}
+
+.action-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.5rem;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.action-primary:hover {
+  background: var(--color-accent-hover);
+}
+
+.access-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 2rem;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  background: var(--color-surface-muted);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.access-badge svg {
+  flex: none;
+  width: 0.875rem;
+  height: 0.875rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.notice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-success-border);
+  border-radius: var(--radius-md);
+  background: var(--color-success-soft);
+  color: var(--color-success);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+
+.notice > svg {
+  flex: none;
+  width: 1.125rem;
+  height: 1.125rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.notice span {
+  flex: 1;
+}
+
+.notice__dismiss {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--radius-sm);
+  color: inherit;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.notice__dismiss:hover {
+  background: color-mix(in srgb, var(--color-success) 16%, transparent);
+}
+
+.notice__dismiss svg {
+  width: 0.875rem;
+  height: 0.875rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+/*
+ * Shared state panels keep empty, error, and not-found states visually consistent
+ * across features. `.state-panel--card` adds the standalone panel frame used when
+ * the state is not already rendered inside a card; `.state-panel--center` centers
+ * the content for full-width empty states.
+ */
+.state-panel {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-2);
+}
+
+.state-panel--center {
+  justify-items: center;
+  text-align: center;
+}
+
+.state-panel--card {
+  padding: clamp(var(--space-8), 7vw, var(--space-12)) var(--space-6);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.state-panel__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: var(--radius-full);
+  background: var(--color-surface-muted);
+  color: var(--color-text-subtle);
+}
+
+.state-panel__icon svg {
+  width: 1.375rem;
+  height: 1.375rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.state-panel--error .state-panel__icon {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.state-panel__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.5rem;
+  margin-top: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.state-panel__action:hover {
+  background: var(--color-accent-hover);
+}
+
+.state-panel--error .state-panel__action {
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+}
+
+.state-panel--error .state-panel__action:hover {
+  background: var(--color-surface-muted);
+  color: var(--color-text);
+}
+
+/* Shared frame for skeleton placeholders shown while data loads. */
+.loading-panel {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .action-primary,
+  .notice__dismiss,
+  .state-panel__action {
+    transition: none;
+  }
+}

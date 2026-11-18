@@ -31,6 +31,16 @@ module.exports = defineConfig([
           style: 'kebab-case',
         },
       ],
+      '@typescript-eslint/consistent-type-imports': [
+        'error',
+        {
+          prefer: 'type-imports',
+          fixStyle: 'inline-type-imports',
+        },
+      ],
+      '@typescript-eslint/no-explicit-any': 'error',
+      eqeqeq: ['error', 'always'],
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
     },
   },
   {

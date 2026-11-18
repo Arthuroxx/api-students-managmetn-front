@@ -1,0 +1,113 @@
+<section class="detail" aria-labelledby="detail-title">
+  <nav class="detail__breadcrumb" aria-label="Breadcrumb">
+    <a routerLink="/students">Students</a>
+    <span aria-hidden="true">/</span>
+    <span aria-current="page">Student record</span>
+  </nav>
+
+  @if (loading()) {
+    <div class="detail__loading loading-panel" aria-busy="true">
+      <p class="sr-only" role="status">Loading student</p>
+      <span class="skeleton-bar skeleton-bar--title"></span>
+      <span class="skeleton-bar skeleton-bar--wide"></span>
+      <span class="skeleton-bar skeleton-bar--medium"></span>
+    </div>
+  } @else if (notFound()) {
+    <div class="detail__state state-panel state-panel--card" role="alert">
+      <h1 id="detail-title">Student not found</h1>
+      <p>The record may have been deleted or the link is invalid.</p>
+      <a class="detail__state-action state-panel__action" routerLink="/students"
+        >Back to students</a
+      >
+    </div>
+  } @else if (error(); as message) {
+    <div class="detail__state state-panel state-panel--card state-panel--error" role="alert">
+      <h1 id="detail-title">Student could not be loaded</h1>
+      <p>{{ message }}</p>
+      <button type="button" class="detail__state-action state-panel__action" (click)="retry()">
+        Try again
+      </button>
+    </div>
+  } @else if (student(); as record) {
+    @if (notice(); as message) {
+      <p class="notice" role="status">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="m5 13 4 4L19 7" />
+        </svg>
+        {{ message }}
+      </p>
+    }
+
+    <header class="detail__header">
+      <span class="detail__avatar" aria-hidden="true">{{ initials(record) }}</span>
+
+      <div class="detail__identity">
+        <p class="detail__eyebrow">Student record</p>
+        <h1 id="detail-title">{{ fullName(record) }}</h1>
+        <p class="detail__email">{{ record.email }}</p>
+      </div>
+
+      <div class="detail__actions">
+        @if (canManage()) {
+          <a class="detail__edit action-primary" [routerLink]="['/students', record.id, 'edit']"
+            >Edit student</a
+          >
+          <button type="button" class="detail__delete" (click)="requestDelete()">Delete</button>
+        } @else {
+          <p class="access-badge">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M7 11V8a5 5 0 0 1 10 0v3" />
+              <rect x="5" y="11" width="14" height="9" rx="2" />
+            </svg>
+            Read-only access
+          </p>
+        }
+      </div>
+    </header>
+
+    <dl class="detail__grid">
+      <div class="detail__item">
+        <dt>Email</dt>
+        <dd>{{ record.email }}</dd>
+      </div>
+
+      <div class="detail__item">
+        <dt>Document number</dt>
+        <dd class="detail__mono">{{ record.documentNumber }}</dd>
+      </div>
+
+      <div class="detail__item">
+        <dt>Date of birth</dt>
+        <dd>{{ birthDate(record.birthDate) }}</dd>
+      </div>
+
+      <div class="detail__item">
+        <dt>Added</dt>
+        <dd>{{ timestamp(record.createdAt) }}</dd>
+      </div>
+
+      <div class="detail__item">
+        <dt>Last updated</dt>
+        <dd>{{ timestamp(record.updatedAt) }}</dd>
+      </div>
+
+      <div class="detail__item">
+        <dt>Record ID</dt>
+        <dd class="detail__mono detail__mono--id">{{ record.id }}</dd>
+      </div>
+    </dl>
+  }
+
+  @if (canManage()) {
+    <sms-confirm-dialog
+      [open]="confirmOpen()"
+      heading="Delete student"
+      [message]="deleteMessage()"
+      confirmLabel="Delete student"
+      [busy]="deleting()"
+      [error]="deleteError()"
+      (confirmed)="confirmDelete()"
+      (cancelled)="cancelDelete()"
+    />
+  }
+</section>

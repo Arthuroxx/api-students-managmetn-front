@@ -1,0 +1,4 @@
+# This application is an internal, authenticated workspace.
+# Search engines have no content to index.
+User-agent: *
+Disallow: /

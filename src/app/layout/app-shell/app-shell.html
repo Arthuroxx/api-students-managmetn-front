@@ -1,0 +1,24 @@
+<div class="shell">
+  <sms-app-sidebar [open]="sidebarOpen()" (closed)="closeSidebar()" (navigated)="closeSidebar()" />
+
+  @if (sidebarOpen()) {
+    <button
+      type="button"
+      class="shell__backdrop"
+      aria-label="Close navigation"
+      (click)="closeSidebar()"
+    ></button>
+  }
+
+  <div class="shell__body" [attr.inert]="sidebarOpen() ? '' : null">
+    <sms-app-header
+      [title]="pageTitle()"
+      [menuExpanded]="sidebarOpen()"
+      (menuToggled)="toggleSidebar()"
+    />
+
+    <main id="main-content" class="shell__content" tabindex="-1">
+      <router-outlet />
+    </main>
+  </div>
+</div>
