@@ -3,16 +3,216 @@
     <p class="students__eyebrow">Workspace</p>
     <h1 id="students-title">Students</h1>
     <p class="students__lede">
-      Search, filter, and manage student records from a single, focused workspace.
+      Browse the student directory, narrow results by name or email, and move through records page
+      by page. Data is read directly from the Student Management API.
     </p>
   </header>
 
-  <div class="students__empty">
-    <h2>Student list coming next</h2>
-    <p>
-      The table, search, filters, and pagination arrive in the next stage. This route exists so the
-      navigation shell and protected routing can be reviewed end to end.
+  <form
+    class="students__filters"
+    role="search"
+    aria-label="Filter students"
+    (submit)="submitFilters($event)"
+  >
+    <div class="filter">
+      <label for="filter-first-name">First name</label>
+      <input
+        id="filter-first-name"
+        type="search"
+        autocomplete="off"
+        spellcheck="false"
+        maxlength="100"
+        placeholder="e.g. Ana"
+        [value]="filters().firstName"
+        (input)="onFilterInput('firstName', $event)"
+      />
+    </div>
+
+    <div class="filter">
+      <label for="filter-last-name">Last name</label>
+      <input
+        id="filter-last-name"
+        type="search"
+        autocomplete="off"
+        spellcheck="false"
+        maxlength="100"
+        placeholder="e.g. Lopez"
+        [value]="filters().lastName"
+        (input)="onFilterInput('lastName', $event)"
+      />
+    </div>
+
+    <div class="filter">
+      <label for="filter-email">Email</label>
+      <input
+        id="filter-email"
+        type="search"
+        autocomplete="off"
+        spellcheck="false"
+        maxlength="255"
+        placeholder="e.g. example.com"
+        [value]="filters().email"
+        (input)="onFilterInput('email', $event)"
+      />
+    </div>
+
+    <button
+      type="button"
+      class="students__clear"
+      [disabled]="!hasFilterInput()"
+      (click)="clearFilters()"
+    >
+      Clear filters
+    </button>
+
+    <p class="students__hint">
+      Filters apply automatically as you type. Press Enter to apply instantly.
     </p>
-    <a class="students__link" routerLink="/">Back to overview</a>
-  </div>
+  </form>
+
+  <section class="students__results" [attr.aria-busy]="loading()" aria-label="Student results">
+    <p class="sr-only" role="status" aria-live="polite">{{ statusMessage() }}</p>
+
+    @if (loading() && students().length > 0) {
+      <span class="students__progress" aria-hidden="true"></span>
+    }
+
+    @if (error(); as message) {
+      <div class="students__state students__state--error" role="alert">
+        <span class="students__state-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <path d="M12 3 2.8 19a1.4 1.4 0 0 0 1.2 2h16a1.4 1.4 0 0 0 1.2-2L12 3Z" />
+            <path d="M12 9v4.5M12 17.2v.3" />
+          </svg>
+        </span>
+        <div>
+          <h2>Students could not be loaded</h2>
+          <p>{{ message }}</p>
+          <button type="button" class="students__action" (click)="retry()">Try again</button>
+        </div>
+      </div>
+    } @else if (showSkeleton()) {
+      <div class="students__skeleton" aria-hidden="true">
+        <div class="students__skeleton-toolbar">
+          <span class="skeleton-bar skeleton-bar--short"></span>
+          <span class="skeleton-bar skeleton-bar--tiny"></span>
+        </div>
+
+        @for (row of skeletonRows; track row) {
+          <div class="students__skeleton-row">
+            <span class="skeleton-bar skeleton-bar--avatar"></span>
+            <span class="skeleton-bar skeleton-bar--wide"></span>
+            <span class="skeleton-bar skeleton-bar--medium"></span>
+            <span class="skeleton-bar skeleton-bar--short"></span>
+          </div>
+        }
+      </div>
+    } @else if (students().length === 0) {
+      <div class="students__state">
+        <span class="students__state-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <circle cx="10" cy="8" r="3.5" />
+            <path d="M3.5 20v-1.5A4.5 4.5 0 0 1 8 14h4a4.5 4.5 0 0 1 4.5 4.5V20" />
+            <path d="m16 6 4 4M20 6l-4 4" />
+          </svg>
+        </span>
+
+        @if (hasActiveFilters()) {
+          <h2>No students match your filters</h2>
+          <p>Try a different name or email, or clear the filters to see the full directory.</p>
+          <button type="button" class="students__action" (click)="clearFilters()">
+            Clear filters
+          </button>
+        } @else {
+          <h2>No students yet</h2>
+          <p>Students created through the API will appear here, newest first.</p>
+        }
+      </div>
+    } @else {
+      <div class="students__toolbar">
+        <p class="students__summary" aria-hidden="true">
+          Showing <strong>{{ rangeStart() }}–{{ rangeEnd() }}</strong> of
+          <strong>{{ total() }}</strong> students
+        </p>
+        <p class="students__order" aria-hidden="true">Newest first</p>
+      </div>
+
+      <div class="students__table-scroll" role="region" aria-label="Students table" tabindex="0">
+        <table class="students-table">
+          <caption class="sr-only">
+            Students matching the current filters
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Student</th>
+              <th scope="col" class="is-secondary">Document</th>
+              <th scope="col">Date of birth</th>
+              <th scope="col" class="is-secondary">Added</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (student of students(); track student.id) {
+              <tr>
+                <th scope="row">
+                  <span class="student-identity">
+                    <span class="student-identity__avatar" aria-hidden="true">
+                      {{ initials(student) }}
+                    </span>
+                    <span class="student-identity__text">
+                      <span class="student-identity__name">{{ fullName(student) }}</span>
+                      <span class="student-identity__email">{{ student.email }}</span>
+                    </span>
+                  </span>
+                </th>
+                <td class="is-secondary">
+                  <span class="students-table__document">{{ student.documentNumber }}</span>
+                </td>
+                <td>{{ formatBirthDate(student.birthDate) }}</td>
+                <td class="is-secondary">{{ formatCreatedAt(student.createdAt) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <footer class="students__pagination">
+        <label class="students__page-size">
+          <span>Rows per page</span>
+          <select [value]="limit()" (change)="changePageSize($event)">
+            @for (size of pageSizes; track size) {
+              <option [value]="size">{{ size }}</option>
+            }
+          </select>
+        </label>
+
+        <div class="students__pager">
+          <button
+            type="button"
+            class="students__page-button"
+            aria-label="Previous page"
+            [disabled]="!canGoPrevious()"
+            (click)="previousPage()"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="m14 6-6 6 6 6" />
+            </svg>
+          </button>
+
+          <span class="students__page-status">Page {{ page() }} of {{ totalPages() }}</span>
+
+          <button
+            type="button"
+            class="students__page-button"
+            aria-label="Next page"
+            [disabled]="!canGoNext()"
+            (click)="nextPage()"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="m10 6 6 6-6 6" />
+            </svg>
+          </button>
+        </div>
+      </footer>
+    }
+  </section>
 </section>
