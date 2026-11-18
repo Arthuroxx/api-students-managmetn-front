@@ -1,6 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import type { ComponentFixture } from '@angular/core/testing';
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { Subject, of, throwError } from 'rxjs';
 import type { PaginatedStudents, Student } from './students.models';
 import { Students } from './students';
@@ -58,13 +59,15 @@ function text(fixture: ComponentFixture<Students>, selector: string): string {
 
 describe('Students', () => {
   let list: ReturnType<typeof vi.fn>;
+  let remove: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     list = vi.fn();
+    remove = vi.fn();
 
     await TestBed.configureTestingModule({
       imports: [Students],
-      providers: [{ provide: StudentsService, useValue: { list } }],
+      providers: [provideRouter([]), { provide: StudentsService, useValue: { list, remove } }],
     }).compileComponents();
   });
 
@@ -246,5 +249,98 @@ describe('Students', () => {
 
     expect(list).toHaveBeenCalledTimes(2);
     expect((fixture.nativeElement as HTMLElement).querySelector('.students-table')).not.toBeNull();
+  });
+
+  it('should delete a student after confirmation and reload the directory', async () => {
+    list.mockReturnValue(of(createPage()));
+    remove.mockReturnValue(of(undefined));
+
+    const fixture = TestBed.createComponent(Students);
+    await fixture.whenStable();
+
+    click(fixture, 'button[aria-label="Delete Ana Lopez"]');
+
+    const dialog = (fixture.nativeElement as HTMLElement).querySelector('dialog');
+
+    expect(dialog?.hasAttribute('open')).toBe(true);
+    expect(text(fixture, '.confirm__message')).toContain('Ana Lopez');
+
+    click(fixture, '.confirm__confirm');
+    await fixture.whenStable();
+
+    expect(remove).toHaveBeenCalledWith('student-1');
+    expect(list).toHaveBeenCalledTimes(2);
+    expect(text(fixture, '.notice')).toContain('Ana Lopez was deleted.');
+    expect(dialog?.hasAttribute('open')).toBe(false);
+  });
+
+  it('should cancel deletion without sending a request', async () => {
+    list.mockReturnValue(of(createPage()));
+
+    const fixture = TestBed.createComponent(Students);
+    await fixture.whenStable();
+
+    click(fixture, 'button[aria-label="Delete Ana Lopez"]');
+    click(fixture, '.confirm__cancel');
+
+    const dialog = (fixture.nativeElement as HTMLElement).querySelector('dialog');
+
+    expect(dialog?.hasAttribute('open')).toBe(false);
+    expect(remove).not.toHaveBeenCalled();
+  });
+
+  it('should keep the dialog open and explain a failed deletion', async () => {
+    list.mockReturnValue(of(createPage()));
+    remove.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 403 })));
+
+    const fixture = TestBed.createComponent(Students);
+    await fixture.whenStable();
+
+    click(fixture, 'button[aria-label="Delete Ana Lopez"]');
+    click(fixture, '.confirm__confirm');
+    await fixture.whenStable();
+
+    const dialog = (fixture.nativeElement as HTMLElement).querySelector('dialog');
+
+    expect(dialog?.hasAttribute('open')).toBe(true);
+    expect(text(fixture, '.confirm__error')).toContain('permission');
+    expect(list).toHaveBeenCalledTimes(1);
+  });
+
+  it('should move to the last page when a deletion empties the current page', async () => {
+    let calls = 0;
+
+    list.mockImplementation(() => {
+      calls += 1;
+
+      if (calls === 1) {
+        return of(createPage({ total: 11, totalPages: 2 }));
+      }
+
+      if (calls === 2) {
+        return of(createPage({ page: 2, total: 11, totalPages: 2 }));
+      }
+
+      if (calls === 3) {
+        return of({ data: [], meta: { total: 10, page: 2, limit: 10, totalPages: 1 } });
+      }
+
+      return of(createPage());
+    });
+
+    remove.mockReturnValue(of(undefined));
+
+    const fixture = TestBed.createComponent(Students);
+    await fixture.whenStable();
+
+    click(fixture, 'button[aria-label="Next page"]');
+    expect(text(fixture, '.students__page-status')).toBe('Page 2 of 2');
+
+    click(fixture, 'button[aria-label="Delete Ana Lopez"]');
+    click(fixture, '.confirm__confirm');
+    await fixture.whenStable();
+
+    expect(list).toHaveBeenLastCalledWith({ page: 1, limit: 10 });
+    expect(text(fixture, '.students__page-status')).toBe('Page 1 of 1');
   });
 });

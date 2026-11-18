@@ -8,8 +8,17 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { RouterLink } from '@angular/router';
 import type { Subscription } from 'rxjs';
 import { readApiErrorMessage } from '../../core/http/api-error';
+import { ConfirmDialog } from '../../shared/confirm-dialog/confirm-dialog';
+import { StudentFeedbackService } from './student-feedback.service';
+import {
+  formatBirthDate,
+  formatTimestamp,
+  studentFullName,
+  studentInitials,
+} from './students.format';
 import type {
   PaginatedStudents,
   Student,
@@ -31,12 +40,14 @@ interface FilterDraft {
 
 @Component({
   selector: 'sms-students',
+  imports: [ConfirmDialog, RouterLink],
   templateUrl: './students.html',
   styleUrl: './students.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Students {
   private readonly studentsService = inject(StudentsService);
+  private readonly feedback = inject(StudentFeedbackService);
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly pageSizes = STUDENT_PAGE_SIZES;
@@ -52,22 +63,19 @@ export class Students {
   protected readonly limit = signal<StudentPageSize>(10);
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
+  protected readonly notice = signal<string | null>(null);
+  protected readonly pendingDelete = signal<Student | null>(null);
+  protected readonly deleting = signal(false);
+  protected readonly deleteError = signal<string | null>(null);
 
   private readonly appliedFilters = signal<StudentFilters>({});
   private filterTimer: ReturnType<typeof setTimeout> | null = null;
   private request: Subscription | null = null;
 
-  private readonly birthDateFormatter = new Intl.DateTimeFormat('en', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    timeZone: 'UTC',
-  });
-  private readonly createdAtFormatter = new Intl.DateTimeFormat('en', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
+  protected readonly initials = studentInitials;
+  protected readonly fullName = studentFullName;
+  protected readonly formatBirthDate = formatBirthDate;
+  protected readonly formatCreatedAt = formatTimestamp;
 
   protected readonly query = computed<StudentQuery>(() => ({
     page: this.page(),
@@ -89,6 +97,16 @@ export class Students {
   protected readonly hasActiveFilters = computed(
     () => Object.keys(this.appliedFilters()).length > 0,
   );
+  protected readonly confirmOpen = computed(() => this.pendingDelete() !== null);
+  protected readonly deleteMessage = computed(() => {
+    const student = this.pendingDelete();
+
+    if (!student) {
+      return 'Delete this student record? This action cannot be undone.';
+    }
+
+    return `Delete ${this.fullName(student)}? The record will be permanently removed and cannot be recovered.`;
+  });
   protected readonly statusMessage = computed(() => {
     if (this.loading()) {
       return 'Loading students';
@@ -106,6 +124,13 @@ export class Students {
   });
 
   constructor() {
+    const message = this.feedback.message();
+
+    if (message) {
+      this.notice.set(message);
+      this.feedback.clear();
+    }
+
     this.load();
   }
 
@@ -168,22 +193,49 @@ export class Students {
     this.load();
   }
 
-  protected initials(student: Student): string {
-    const initials = `${student.firstName.charAt(0)}${student.lastName.charAt(0)}`.trim();
-
-    return (initials || '?').toUpperCase();
+  protected dismissNotice(): void {
+    this.notice.set(null);
   }
 
-  protected fullName(student: Student): string {
-    return `${student.firstName} ${student.lastName}`.trim();
+  protected requestDelete(student: Student): void {
+    this.deleteError.set(null);
+    this.pendingDelete.set(student);
   }
 
-  protected formatBirthDate(value: string): string {
-    return this.formatDate(value, this.birthDateFormatter);
+  protected cancelDelete(): void {
+    if (this.deleting()) {
+      return;
+    }
+
+    this.pendingDelete.set(null);
+    this.deleteError.set(null);
   }
 
-  protected formatCreatedAt(value: string): string {
-    return this.formatDate(value, this.createdAtFormatter);
+  protected confirmDelete(): void {
+    const student = this.pendingDelete();
+
+    if (!student || this.deleting()) {
+      return;
+    }
+
+    this.deleting.set(true);
+    this.deleteError.set(null);
+
+    this.studentsService
+      .remove(student.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.deleting.set(false);
+          this.pendingDelete.set(null);
+          this.notice.set(`${this.fullName(student)} was deleted.`);
+          this.load();
+        },
+        error: (error: unknown) => {
+          this.deleting.set(false);
+          this.deleteError.set(this.describeDeleteError(error));
+        },
+      });
   }
 
   private scheduleFilterApply(): void {
@@ -227,6 +279,14 @@ export class Students {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (response: PaginatedStudents) => {
+          const lastPage = Math.max(response.meta.totalPages, 1);
+
+          if (response.data.length === 0 && this.page() > lastPage) {
+            this.page.set(lastPage);
+            this.load();
+            return;
+          }
+
           this.students.set(response.data);
           this.meta.set(response.meta);
           this.loading.set(false);
@@ -234,13 +294,13 @@ export class Students {
         error: (error: unknown) => {
           this.students.set([]);
           this.meta.set(null);
-          this.error.set(this.describeError(error));
+          this.error.set(this.describeListError(error));
           this.loading.set(false);
         },
       });
   }
 
-  private describeError(error: unknown): string {
+  private describeListError(error: unknown): string {
     if (!(error instanceof HttpErrorResponse)) {
       return 'Students could not be loaded. Please try again.';
     }
@@ -259,9 +319,22 @@ export class Students {
     }
   }
 
-  private formatDate(value: string, formatter: Intl.DateTimeFormat): string {
-    const date = new Date(value);
+  private describeDeleteError(error: unknown): string {
+    if (!(error instanceof HttpErrorResponse)) {
+      return 'The student could not be deleted. Please try again.';
+    }
 
-    return Number.isNaN(date.getTime()) ? '—' : formatter.format(date);
+    switch (error.status) {
+      case 403:
+        return 'You do not have permission to delete student records.';
+      case 404:
+        return 'This student no longer exists.';
+      case 0:
+        return 'The API is unreachable. Check that it is running and try again.';
+      default:
+        return (
+          readApiErrorMessage(error.error) ?? 'The student could not be deleted. Please try again.'
+        );
+    }
   }
 }

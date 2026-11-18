@@ -1,0 +1,26 @@
+<dialog #dialog class="confirm" [attr.aria-label]="heading()" (cancel)="onCancel($event)">
+  <div class="confirm__panel">
+    <h2 class="confirm__heading">{{ heading() }}</h2>
+    <p class="confirm__message">{{ message() }}</p>
+
+    @if (error(); as message) {
+      <p class="confirm__error" role="alert">{{ message }}</p>
+    }
+
+    <div class="confirm__actions">
+      <button
+        #cancelButton
+        type="button"
+        class="confirm__cancel"
+        [disabled]="busy()"
+        (click)="cancel()"
+      >
+        {{ cancelLabel() }}
+      </button>
+
+      <button type="button" class="confirm__confirm" [disabled]="busy()" (click)="confirmed.emit()">
+        {{ busy() ? 'Working…' : confirmLabel() }}
+      </button>
+    </div>
+  </div>
+</dialog>

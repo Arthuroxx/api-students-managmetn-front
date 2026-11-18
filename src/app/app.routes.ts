@@ -24,6 +24,30 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/students/students').then((module) => module.Students),
       },
+      {
+        path: 'students/new',
+        title: 'Add student',
+        loadComponent: () =>
+          import('./features/students/student-editor/student-editor').then(
+            (module) => module.StudentEditor,
+          ),
+      },
+      {
+        path: 'students/:id/edit',
+        title: 'Edit student',
+        loadComponent: () =>
+          import('./features/students/student-editor/student-editor').then(
+            (module) => module.StudentEditor,
+          ),
+      },
+      {
+        path: 'students/:id',
+        title: 'Student details',
+        loadComponent: () =>
+          import('./features/students/student-detail/student-detail').then(
+            (module) => module.StudentDetail,
+          ),
+      },
     ],
   },
   {

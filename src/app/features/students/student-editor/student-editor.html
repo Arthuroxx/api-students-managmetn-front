@@ -1,0 +1,175 @@
+<section class="editor" aria-labelledby="editor-title">
+  <a class="editor__back" routerLink="/students">
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="m14 6-6 6 6 6" />
+    </svg>
+    Students
+  </a>
+
+  <header class="editor__header">
+    <p class="editor__eyebrow">{{ isEdit ? 'Edit record' : 'New record' }}</p>
+    <h1 id="editor-title">{{ isEdit ? 'Edit student' : 'Add a student' }}</h1>
+    <p class="editor__lede">
+      {{
+        isEdit
+          ? 'Update the fields you need. Only changed values are sent to the API.'
+          : 'Create a student record. The email address and document number must be unique.'
+      }}
+    </p>
+  </header>
+
+  @if (loading()) {
+    <div class="editor__loading" aria-busy="true">
+      <p class="sr-only" role="status">Loading student</p>
+      <span class="skeleton-bar skeleton-bar--title"></span>
+      <span class="skeleton-bar skeleton-bar--wide"></span>
+      <span class="skeleton-bar skeleton-bar--medium"></span>
+    </div>
+  } @else if (notFound()) {
+    <div class="editor__state" role="alert">
+      <h2>Student not found</h2>
+      <p>The record may have been deleted or the link is invalid.</p>
+      <a class="editor__state-action" routerLink="/students">Back to students</a>
+    </div>
+  } @else if (loadError(); as message) {
+    <div class="editor__state editor__state--error" role="alert">
+      <h2>Student could not be loaded</h2>
+      <p>{{ message }}</p>
+      <button type="button" class="editor__state-action" (click)="retryLoad()">Try again</button>
+    </div>
+  } @else {
+    <form class="editor__form" [formRoot]="editorForm" novalidate>
+      @if (formError(); as message) {
+        <p class="editor__alert" role="alert">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 7.5v5M12 16.2v.3" />
+          </svg>
+          {{ message }}
+        </p>
+      }
+
+      <div class="editor__row">
+        <div class="editor__field">
+          <label for="student-first-name">First name</label>
+          <input
+            id="student-first-name"
+            type="text"
+            autocomplete="given-name"
+            [attr.aria-invalid]="showFieldError('firstName')"
+            [attr.aria-describedby]="
+              showFieldError('firstName') ? 'student-first-name-error' : null
+            "
+            [formField]="editorForm.firstName"
+          />
+
+          @if (showFieldError('firstName')) {
+            <p id="student-first-name-error" class="editor__field-error">
+              {{ fieldErrorMessage('firstName') }}
+            </p>
+          }
+        </div>
+
+        <div class="editor__field">
+          <label for="student-last-name">Last name</label>
+          <input
+            id="student-last-name"
+            type="text"
+            autocomplete="family-name"
+            [attr.aria-invalid]="showFieldError('lastName')"
+            [attr.aria-describedby]="showFieldError('lastName') ? 'student-last-name-error' : null"
+            [formField]="editorForm.lastName"
+          />
+
+          @if (showFieldError('lastName')) {
+            <p id="student-last-name-error" class="editor__field-error">
+              {{ fieldErrorMessage('lastName') }}
+            </p>
+          }
+        </div>
+      </div>
+
+      <div class="editor__field">
+        <label for="student-email">Email</label>
+        <input
+          id="student-email"
+          type="email"
+          autocomplete="email"
+          inputmode="email"
+          spellcheck="false"
+          [attr.aria-invalid]="showFieldError('email')"
+          [attr.aria-describedby]="showFieldError('email') ? 'student-email-error' : null"
+          [formField]="editorForm.email"
+        />
+
+        @if (showFieldError('email')) {
+          <p id="student-email-error" class="editor__field-error">
+            {{ fieldErrorMessage('email') }}
+          </p>
+        }
+      </div>
+
+      <div class="editor__row">
+        <div class="editor__field">
+          <label for="student-document">Document number</label>
+          <input
+            id="student-document"
+            type="text"
+            autocomplete="off"
+            spellcheck="false"
+            [attr.aria-invalid]="showFieldError('documentNumber')"
+            [attr.aria-describedby]="
+              showFieldError('documentNumber') ? 'student-document-error' : null
+            "
+            [formField]="editorForm.documentNumber"
+          />
+
+          @if (showFieldError('documentNumber')) {
+            <p id="student-document-error" class="editor__field-error">
+              {{ fieldErrorMessage('documentNumber') }}
+            </p>
+          }
+        </div>
+
+        <div class="editor__field">
+          <label for="student-birth-date">Date of birth</label>
+          <input
+            id="student-birth-date"
+            type="date"
+            autocomplete="bday"
+            [attr.max]="maxBirthDate"
+            [attr.aria-invalid]="showFieldError('birthDate')"
+            [attr.aria-describedby]="
+              showFieldError('birthDate') ? 'student-birth-date-error' : null
+            "
+            [formField]="editorForm.birthDate"
+          />
+
+          @if (showFieldError('birthDate')) {
+            <p id="student-birth-date-error" class="editor__field-error">
+              {{ fieldErrorMessage('birthDate') }}
+            </p>
+          }
+        </div>
+      </div>
+
+      <p class="editor__note">
+        All fields are required. The date of birth cannot be in the future.
+      </p>
+
+      <div class="editor__actions">
+        <button type="submit" class="editor__submit" [disabled]="editorForm().submitting()">
+          {{ editorForm().submitting() ? 'Saving…' : isEdit ? 'Save changes' : 'Add student' }}
+        </button>
+        <button
+          type="button"
+          class="editor__cancel"
+          [disabled]="editorForm().submitting()"
+          (click)="cancel()"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
+  }
+</section>
