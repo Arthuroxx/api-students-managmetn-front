@@ -3,12 +3,13 @@
   <h1 id="welcome-title">A calmer way to manage student records.</h1>
   <p class="lede">
     A focused, accessible workspace for student data. Sign in to browse the student directory,
-    filter records by name or email, and create, update, or remove student records.
+    filter records by name or email, and review details. Administrators can also create, update, and
+    remove student records.
   </p>
 
   <div class="hero__actions">
     <a class="button" routerLink="/students">View students</a>
-    <span class="stage-badge">Stage 5 · Student management</span>
+    <span class="stage-badge">Stage 6 · Roles and permissions</span>
   </div>
 
   <ul class="highlights">
@@ -34,7 +35,7 @@
     <h2 id="status-title">Project status</h2>
     <span class="status-pill">
       <span class="status-pill__dot" aria-hidden="true"></span>
-      Management ready
+      Permissions ready
     </span>
   </div>
 
@@ -68,13 +69,17 @@
       <dd>Create, edit, delete</dd>
     </div>
     <div class="status-list__row">
+      <dt>Permissions</dt>
+      <dd>ADMIN · USER</dd>
+    </div>
+    <div class="status-list__row">
       <dt>Next stage</dt>
-      <dd>Roles and permissions</dd>
+      <dd>Quality</dd>
     </div>
   </dl>
 
   <p class="status-note">
-    Student management is ready, including validation, duplicate handling, and confirmed deletion.
-    Role-aware interface behavior arrives in the next stage.
+    Access follows the role issued at sign-in. Administrators manage records, read-only users can
+    browse them, and the API enforces every permission.
   </p>
 </aside>

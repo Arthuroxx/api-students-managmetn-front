@@ -4,12 +4,25 @@
       <p class="students__eyebrow">Workspace</p>
       <h1 id="students-title">Students</h1>
       <p class="students__lede">
-        Browse the student directory, narrow results by name or email, and open a record to review,
-        edit, or delete it. Data is read directly from the Student Management API.
+        Browse the student directory, narrow results by name or email, and open a record to review
+        its details. Administrators can also create, edit, or delete records. Data is read directly
+        from the Student Management API.
       </p>
     </div>
 
-    <a class="students__add action-primary" routerLink="/students/new">Add student</a>
+    <div class="students__tools">
+      @if (canManage()) {
+        <a class="students__add action-primary" routerLink="/students/new">Add student</a>
+      } @else {
+        <p class="access-badge">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M7 11V8a5 5 0 0 1 10 0v3" />
+            <rect x="5" y="11" width="14" height="9" rx="2" />
+          </svg>
+          Read-only access
+        </p>
+      }
+    </div>
   </header>
 
   <form
@@ -149,7 +162,9 @@
         } @else {
           <h2>No students yet</h2>
           <p>Create the first record to start building the directory.</p>
-          <a class="students__action" routerLink="/students/new">Add student</a>
+          @if (canManage()) {
+            <a class="students__action" routerLink="/students/new">Add student</a>
+          }
         }
       </div>
     } @else {
@@ -172,7 +187,9 @@
               <th scope="col" class="is-secondary">Document</th>
               <th scope="col">Date of birth</th>
               <th scope="col" class="is-secondary">Added</th>
-              <th scope="col" class="students-table__actions-heading">Actions</th>
+              @if (canManage()) {
+                <th scope="col" class="students-table__actions-heading">Actions</th>
+              }
             </tr>
           </thead>
           <tbody>
@@ -194,23 +211,25 @@
                 </td>
                 <td>{{ formatBirthDate(student.birthDate) }}</td>
                 <td class="is-secondary">{{ formatCreatedAt(student.createdAt) }}</td>
-                <td class="students-table__actions">
-                  <a
-                    class="students-table__action"
-                    [routerLink]="['/students', student.id, 'edit']"
-                    [attr.aria-label]="'Edit ' + fullName(student)"
-                  >
-                    Edit
-                  </a>
-                  <button
-                    type="button"
-                    class="students-table__action students-table__action--danger"
-                    [attr.aria-label]="'Delete ' + fullName(student)"
-                    (click)="requestDelete(student)"
-                  >
-                    Delete
-                  </button>
-                </td>
+                @if (canManage()) {
+                  <td class="students-table__actions">
+                    <a
+                      class="students-table__action"
+                      [routerLink]="['/students', student.id, 'edit']"
+                      [attr.aria-label]="'Edit ' + fullName(student)"
+                    >
+                      Edit
+                    </a>
+                    <button
+                      type="button"
+                      class="students-table__action students-table__action--danger"
+                      [attr.aria-label]="'Delete ' + fullName(student)"
+                      (click)="requestDelete(student)"
+                    >
+                      Delete
+                    </button>
+                  </td>
+                }
               </tr>
             }
           </tbody>
@@ -258,14 +277,16 @@
     }
   </section>
 
-  <sms-confirm-dialog
-    [open]="confirmOpen()"
-    heading="Delete student"
-    [message]="deleteMessage()"
-    confirmLabel="Delete student"
-    [busy]="deleting()"
-    [error]="deleteError()"
-    (confirmed)="confirmDelete()"
-    (cancelled)="cancelDelete()"
-  />
+  @if (canManage()) {
+    <sms-confirm-dialog
+      [open]="confirmOpen()"
+      heading="Delete student"
+      [message]="deleteMessage()"
+      confirmLabel="Delete student"
+      [busy]="deleting()"
+      [error]="deleteError()"
+      (confirmed)="confirmDelete()"
+      (cancelled)="cancelDelete()"
+    />
+  }
 </section>

@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { AuthorizationService } from '../../../core/auth/authorization.service';
 import { readApiErrorMessage } from '../../../core/http/api-error';
 import { ConfirmDialog } from '../../../shared/confirm-dialog/confirm-dialog';
 import { StudentFeedbackService } from '../student-feedback.service';
@@ -31,10 +32,12 @@ import { StudentsService } from '../students.service';
 export class StudentDetail {
   private readonly students = inject(StudentsService);
   private readonly feedback = inject(StudentFeedbackService);
+  private readonly authorization = inject(AuthorizationService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
 
+  protected readonly canManage = this.authorization.canManageStudents;
   protected readonly studentId = this.route.snapshot.paramMap.get('id') ?? '';
   protected readonly student = signal<Student | null>(null);
   protected readonly loading = signal(true);
@@ -70,6 +73,10 @@ export class StudentDetail {
   }
 
   protected requestDelete(): void {
+    if (!this.canManage()) {
+      return;
+    }
+
     this.deleteError.set(null);
     this.confirmOpen.set(true);
   }

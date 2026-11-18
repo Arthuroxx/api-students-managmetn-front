@@ -44,10 +44,20 @@
       </div>
 
       <div class="detail__actions">
-        <a class="detail__edit action-primary" [routerLink]="['/students', record.id, 'edit']"
-          >Edit student</a
-        >
-        <button type="button" class="detail__delete" (click)="requestDelete()">Delete</button>
+        @if (canManage()) {
+          <a class="detail__edit action-primary" [routerLink]="['/students', record.id, 'edit']"
+            >Edit student</a
+          >
+          <button type="button" class="detail__delete" (click)="requestDelete()">Delete</button>
+        } @else {
+          <p class="access-badge">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M7 11V8a5 5 0 0 1 10 0v3" />
+              <rect x="5" y="11" width="14" height="9" rx="2" />
+            </svg>
+            Read-only access
+          </p>
+        }
       </div>
     </header>
 
@@ -84,14 +94,16 @@
     </dl>
   }
 
-  <sms-confirm-dialog
-    [open]="confirmOpen()"
-    heading="Delete student"
-    [message]="deleteMessage()"
-    confirmLabel="Delete student"
-    [busy]="deleting()"
-    [error]="deleteError()"
-    (confirmed)="confirmDelete()"
-    (cancelled)="cancelDelete()"
-  />
+  @if (canManage()) {
+    <sms-confirm-dialog
+      [open]="confirmOpen()"
+      heading="Delete student"
+      [message]="deleteMessage()"
+      confirmLabel="Delete student"
+      [busy]="deleting()"
+      [error]="deleteError()"
+      (confirmed)="confirmDelete()"
+      (cancelled)="cancelDelete()"
+    />
+  }
 </section>

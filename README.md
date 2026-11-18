@@ -3,10 +3,10 @@
 A focused, accessible web client for the Student Management API. This project is developed
 independently from the backend and uses Angular 22 as its application framework.
 
-The repository is currently in the **student-management stage**. It contains the project setup,
+The repository is currently in the **roles and permissions stage**. It contains the project setup,
 architecture, design tokens, quality tooling, the application shell, JWT authentication, a paginated
-student directory, and the create, read, update, and delete flows for student records. Role-specific
-interface behavior is intentionally out of scope for this stage.
+student directory, create/read/update/delete flows, and role-aware authorization that matches the API
+contract.
 
 ## Table of contents
 
@@ -22,7 +22,7 @@ interface behavior is intentionally out of scope for this stage.
 - [Quality and accessibility](#quality-and-accessibility)
 - [Testing](#testing)
 - [Git workflow](#git-workflow)
-- [Stage 5 scope](#stage-5-scope)
+- [Stage 6 scope](#stage-6-scope)
 - [Backend reference](#backend-reference)
 - [Roadmap](#roadmap)
 
@@ -34,8 +34,9 @@ surfaces, subtle borders, deliberate spacing, and a single accent color.
 
 The application opens on a sign-in screen. After authentication, an overview screen renders inside a
 persistent shell with a sidebar, header, theme control, account menu, and sign-out action. The
-students route provides a paginated directory with first-name, last-name, and email filters. Records
-can be created, opened, edited, and deleted from the same area, with confirmation before deletion.
+students route provides a paginated directory with first-name, last-name, and email filters. Both
+roles can review records; administrators can also create, open, edit, and delete them, with
+confirmation before deletion.
 
 ## Stack
 
@@ -116,6 +117,7 @@ src/
 │   ├── features/                # Business features, grouped by capability
 │   │   ├── auth/                # Public sign-in route
 │   │   │   └── login/           # Signal Form, validation, and error handling
+│   │   ├── forbidden/           # Authenticated 403 page for denied routes
 │   │   ├── students/            # Directory, detail, editor, and CRUD API service
 │   │   └── welcome/             # Overview screen
 │   ├── layout/                  # Application shell and navigation
@@ -146,8 +148,8 @@ src/
 ```
 
 The `layout/` directory owns the visual shell. Feature routes render inside its `main` landmark.
-`core/auth` owns the session, `core/theme` owns the theme preference, and `features/auth` owns the
-public sign-in experience.
+`core/auth` owns the session, authorization decisions, and route guards, `core/theme` owns the theme
+preference, and `features/auth` owns the public sign-in experience.
 
 ## Architecture decisions
 
@@ -184,18 +186,36 @@ query is authoritative, so the application follows the operating system without 
 ### Authentication
 
 The sign-in screen uses Signal Forms (`@angular/forms/signals`) with a typed model and schema-based
-validation. `AuthService` posts credentials to `POST /auth/login`, decodes the email claim from the
-returned JWT, and stores the session in `localStorage` with an absolute expiry. The client never
-verifies or trusts the token for authorization; roles only shape the interface, while the API remains
-authoritative.
+validation. `AuthService` posts credentials to `POST /auth/login`, validates the returned role and
+JWT claims, and stores the session, including the role and email, in `localStorage` with an absolute
+expiry. The client never verifies or trusts the token for authorization; roles only shape the
+interface, while the API remains authoritative.
 
 A functional interceptor adds `Authorization: Bearer` to outgoing API requests. When a protected
 request returns `401`, the session is cleared and the user is sent back to `/login` with a return URL.
-`authGuard` protects the application shell, and `guestGuard` keeps authenticated users away from the
-sign-in page.
+`403` responses keep the session intact and surface an actionable permission message, because the
+user is authenticated but lacks the required role. `authGuard` protects the application shell, and
+`guestGuard` keeps authenticated users away from the sign-in page.
 
 The JWT payload is decoded without signature verification. Verification belongs to the API; the UI
-only reads the email claim to personalize the header.
+only reads the identity and role claims needed to personalize the header and the interface.
+
+### Authorization
+
+`AuthorizationService` derives every decision from the existing `AuthService` session: it exposes the
+current role, `isAdmin`, `canViewStudents`, and `canManageStudents` as computed signals. No second
+copy of the authentication state exists. Student capabilities follow the API contract: `ADMIN` and
+`USER` can read the directory and records, while only `ADMIN` can create, edit, or delete.
+
+`roleGuard` reads the roles declared in route `data` and keeps the two failure modes distinct.
+Unauthenticated visitors are redirected to `/login?returnUrl=…`; authenticated users without the
+required role are redirected to the authenticated `/forbidden` page. A malformed role declaration
+denies access instead of silently opening the route.
+
+The directory and detail page hide management controls from `USER` and show a read-only badge.
+`/students/new` and `/students/:id/edit` are also protected by the guard, so direct URL navigation is
+denied even when controls are hidden. Hiding controls is a usability measure, not the security
+boundary: the API validates the role on every request.
 
 ### Student directory
 
@@ -312,7 +332,8 @@ pieces of the system:
 - filter controls, a pagination footer, and skeleton placeholders for loading;
 - a student detail panel with grouped metadata and destructive-action styling;
 - an editor form with inline validation and a responsive two-column layout;
-- a native confirmation dialog with busy, error, and reduced-motion states.
+- a native confirmation dialog with busy, error, and reduced-motion states;
+- a compact read-only access badge for users without management permissions;
 
 Decorative gradients, glassmorphism, oversized shadows, and unnecessary cards are deliberately
 avoided.
@@ -337,6 +358,8 @@ avoided.
   a visible focus target for horizontally scrollable results.
 - Student rows expose explicit edit and delete controls with descriptive accessible names; delete
   actions require confirmation.
+- Role-restricted controls are removed from the accessible tree for read-only users instead of being
+  rendered disabled, and the read-only badge communicates the reduced permission level.
 - The student editor links every field to an inline error through `aria-invalid` and
   `aria-describedby`, and announces submit failures with `role="alert"`.
 - The confirmation dialog is a native `<dialog>`: it takes focus on open, closes on `Escape` or
@@ -356,10 +379,11 @@ later feature must preserve it.
 
 Vitest runs through the official Angular unit-test builder. The suite covers the root component,
 application shell, sidebar, header, theme preference, overview screen, brand mark input behavior,
-JWT decoding, API URL joining, session lifecycle, interceptor behavior, route guards, the login form,
-the student service and its CRUD requests, the directory's loading, filtering, pagination, deletion,
-empty, and error states, the create and edit flows, the detail page states, the confirmation dialog,
-and the shared formatting helpers.
+JWT decoding, API URL joining, session lifecycle, interceptor behavior, authorization service
+permissions, role guard redirects, route configuration, the forbidden page, the login form, the
+student service and its CRUD requests, the directory's loading, filtering, pagination, deletion,
+empty, and error states, role-aware action visibility, the create and edit flows, the detail page
+states, the confirmation dialog, and the shared formatting helpers.
 
 ```bash
 npm test
@@ -381,35 +405,35 @@ npm run test:coverage
 - `feature/authentication` contains Stage 3 and builds on the layout branch.
 - `feature/student-list` contains Stage 4 and builds on the authentication branch.
 - `feature/student-management` contains Stage 5 and builds on the student-list branch.
+- `feature/role-permissions` contains Stage 6 and builds on the student-management branch.
 - Future stages use one `feature/*` branch each and target `develop` through a pull request.
 
 The frontend repository is independent from the backend repository. No backend files are modified by
 this project.
 
-## Stage 5 scope
+## Stage 6 scope
 
 Included:
 
-- create, detail, and edit routes under `/students`, with `/students/new`,
-  `/students/:id`, and `/students/:id/edit`;
-- a Signal Forms editor with required, email, max-length, and no-future-date validation;
-- request normalization matching the API (trimmed names, lowercase email, uppercase document number);
-- partial `PATCH` requests that send only changed fields;
-- a detail page with loading, missing-record, error, and retry states;
-- deletion from both the directory and the detail page, guarded by a shared confirmation dialog;
-- busy and error feedback for deletion, including the `403` permission response;
-- a one-time success notice for create and update flows;
-- directory reload after deletion, with a step back when the current page becomes empty;
-- shared student formatting helpers and a shared API error reader;
-- unit tests, lint, formatting, and production build verification;
-- project documentation updates.
+- `AuthorizationService`, a single source of role-derived decisions built on the existing session;
+- `ADMIN` capabilities for reading and managing students, and read-only `USER` capabilities;
+- a functional `roleGuard` that reads route `data.roles` and distinguishes `401` from `403`;
+- role-protected `/students` and `/students/:id` routes plus administrator-only `/students/new` and
+  `/students/:id/edit` routes;
+- an authenticated `/forbidden` page for users without the required role;
+- management controls hidden from `USER` in the directory and detail page, with a read-only badge;
+- existing `401` logout and redirect behavior preserved, with `403` responses kept actionable and
+  non-destructive to the session;
+- unit tests for permissions, protected routes, unauthorized navigation, `401`, `403`, and action
+  visibility;
+- documentation updates and full test, lint, format, and production build verification.
 
 Excluded:
 
-- role-aware interface behavior and permission gating, which belong to Stage 6;
-- optimistic updates, bulk deletion, and undo;
-- sorting controls, global search, column selection, and CSV export;
-- audit history and soft-delete restoration.
+- Stage 7 quality work and Stage 8 finalization;
+- role management screens or user administration;
+- server-side permission changes; the backend remains read-only for this project;
+- route-level per-record ownership rules, optimistic updates, and audit history.
 
 ## Backend reference
 
@@ -424,6 +448,11 @@ exposes:
 | `POST`   | `/students`     | `ADMIN`         |
 | `PATCH`  | `/students/:id` | `ADMIN`         |
 | `DELETE` | `/students/:id` | `ADMIN`         |
+
+Missing or invalid credentials return `401 Unauthorized`; an authenticated user without the required
+role receives `403 Forbidden`. The login response includes the user's `role`, and the signed JWT also
+carries `role`, `email`, `sub`, and `exp`. The backend re-reads the user role before authorizing each
+protected request, so the client-side role is only a presentation aid.
 
 The local backend runs at `http://localhost:3000`, with Swagger at
 `http://localhost:3000/api/docs`. Student fields are `firstName`, `lastName`, `email`,
@@ -462,6 +491,7 @@ newest first. The response shape is:
 3. **Authentication** — completed. Login, JWT handling, interceptors, and route protection.
 4. **Student list** — completed. Directory table, filters, and pagination.
 5. **Student management** — completed. Create, detail, edit, and delete flows with validation.
-6. **Roles and permissions** — align the interface with backend access rules.
+6. **Roles and permissions** — completed. Role-derived authorization, protected routes, and
+   role-aware interface behavior.
 7. **Quality** — validation, errors, accessibility, responsiveness, and tests.
 8. **Finalization** — documentation and deployment preparation.

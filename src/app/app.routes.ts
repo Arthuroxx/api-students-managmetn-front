@@ -1,5 +1,7 @@
 import type { Routes } from '@angular/router';
 import { authGuard, guestGuard } from './core/auth/auth.guard';
+import { STUDENT_MANAGE_ROLES, STUDENT_VIEW_ROLES } from './core/auth/auth.models';
+import { roleGuard } from './core/auth/role.guard';
 
 export const routes: Routes = [
   {
@@ -21,12 +23,16 @@ export const routes: Routes = [
       {
         path: 'students',
         title: 'Students',
+        canActivate: [roleGuard],
+        data: { roles: STUDENT_VIEW_ROLES },
         loadComponent: () =>
           import('./features/students/students').then((module) => module.Students),
       },
       {
         path: 'students/new',
         title: 'Add student',
+        canActivate: [roleGuard],
+        data: { roles: STUDENT_MANAGE_ROLES },
         loadComponent: () =>
           import('./features/students/student-editor/student-editor').then(
             (module) => module.StudentEditor,
@@ -35,6 +41,8 @@ export const routes: Routes = [
       {
         path: 'students/:id/edit',
         title: 'Edit student',
+        canActivate: [roleGuard],
+        data: { roles: STUDENT_MANAGE_ROLES },
         loadComponent: () =>
           import('./features/students/student-editor/student-editor').then(
             (module) => module.StudentEditor,
@@ -43,10 +51,18 @@ export const routes: Routes = [
       {
         path: 'students/:id',
         title: 'Student details',
+        canActivate: [roleGuard],
+        data: { roles: STUDENT_VIEW_ROLES },
         loadComponent: () =>
           import('./features/students/student-detail/student-detail').then(
             (module) => module.StudentDetail,
           ),
+      },
+      {
+        path: 'forbidden',
+        title: 'Access denied',
+        loadComponent: () =>
+          import('./features/forbidden/forbidden').then((module) => module.Forbidden),
       },
     ],
   },
