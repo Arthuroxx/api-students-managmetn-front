@@ -1,7 +1,72 @@
-<section class="welcome" aria-labelledby="welcome-title">
-  <h1 id="welcome-title">Student Management</h1>
-  <p class="welcome__description">
-    Manage and organize the student information of an educational institution.
-  </p>
-  <a class="welcome__action action-primary" routerLink="/students">View Students</a>
+<section class="dashboard" aria-labelledby="dashboard-title" [attr.aria-busy]="loading()">
+  <header class="dashboard__header">
+    <h1 id="dashboard-title">Overview</h1>
+    <a class="dashboard__action action-primary" routerLink="/students">View Students</a>
+  </header>
+
+  <p class="sr-only" role="status" aria-live="polite">{{ statusMessage() }}</p>
+
+  @if (error(); as message) {
+    <div class="dashboard__state state-panel state-panel--card state-panel--error" role="alert">
+      <span class="state-panel__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" focusable="false">
+          <path d="M12 3 2.8 19a1.4 1.4 0 0 0 1.2 2h16a1.4 1.4 0 0 0 1.2-2L12 3Z" />
+          <path d="M12 9v4.5M12 17.2v.3" />
+        </svg>
+      </span>
+      <h2>Overview could not be loaded</h2>
+      <p>{{ message }}</p>
+      <button type="button" class="state-panel__action" (click)="retry()">Try again</button>
+    </div>
+  } @else {
+    <div class="dashboard__grid">
+      <article class="dashboard__card dashboard__card--total">
+        <h2 class="dashboard__card-title">Total Students</h2>
+
+        @if (loading()) {
+          <span class="skeleton-bar skeleton-bar--title" aria-hidden="true"></span>
+        } @else {
+          <p class="dashboard__value">{{ total() }}</p>
+          <p class="dashboard__caption">Registered students</p>
+        }
+      </article>
+
+      <article class="dashboard__card dashboard__card--recent">
+        <h2 class="dashboard__card-title">Recently Added</h2>
+
+        @if (loading()) {
+          <ul class="dashboard__skeleton" aria-hidden="true">
+            @for (row of skeletonRows; track row) {
+              <li class="dashboard__skeleton-row">
+                <span class="skeleton-bar skeleton-bar--wide"></span>
+                <span class="skeleton-bar skeleton-bar--short"></span>
+              </li>
+            }
+          </ul>
+        } @else if (recent().length === 0) {
+          <div class="dashboard__empty state-panel">
+            <span class="state-panel__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false">
+                <circle cx="10" cy="8" r="3.5" />
+                <path d="M3.5 20v-1.5A4.5 4.5 0 0 1 8 14h4a4.5 4.5 0 0 1 4.5 4.5V20" />
+              </svg>
+            </span>
+            <h3>No students yet</h3>
+            <p>New records will appear here as soon as students are added.</p>
+          </div>
+        } @else {
+          <ul class="recent-list">
+            @for (student of recent(); track student.id) {
+              <li class="recent-list__item">
+                <span class="recent-list__name">{{ fullName(student) }}</span>
+                <time class="recent-list__date" [attr.datetime]="student.createdAt">
+                  {{ formatCreatedAt(student.createdAt) }}
+                </time>
+              </li>
+            }
+          </ul>
+        }
+      </article>
+    </div>
+  }
 </section>
