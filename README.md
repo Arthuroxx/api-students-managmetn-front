@@ -3,11 +3,13 @@
 A focused, accessible web client for the Student Management API. This project is developed
 independently from the backend and uses Angular 22 as its application framework.
 
-The repository is currently in the **quality stage**. It contains the project setup, architecture,
-design tokens, quality tooling, the application shell, JWT authentication, a paginated student
-directory, create/read/update/delete flows, role-aware authorization that matches the API contract,
-and a unified quality layer: consistent validations and error handling, WCAG 2.2 AA accessibility,
-responsive layouts from 320px, and consistent loading and empty states.
+The repository is currently in the **finalization stage**. It contains the project setup,
+architecture, design tokens, quality tooling, the application shell, JWT authentication, a paginated
+student directory, create/read/update/delete flows, role-aware authorization that matches the API
+contract, a unified quality layer (consistent validations and error handling, WCAG 2.2 AA
+accessibility, responsive layouts from 320px, and consistent loading and empty states), and the
+deployment preparation: operational documentation, build-time configuration, container and CI
+artifacts, and a backend integration smoke test.
 
 ## Table of contents
 
@@ -15,6 +17,7 @@ responsive layouts from 320px, and consistent loading and empty states.
 - [Stack](#stack)
 - [Requirements](#requirements)
 - [Getting started](#getting-started)
+- [Documentation](#documentation)
 - [Scripts](#scripts)
 - [Project structure](#project-structure)
 - [Architecture decisions](#architecture-decisions)
@@ -22,8 +25,9 @@ responsive layouts from 320px, and consistent loading and empty states.
 - [Design system](#design-system)
 - [Quality and accessibility](#quality-and-accessibility)
 - [Testing](#testing)
+- [Deployment](#deployment)
 - [Git workflow](#git-workflow)
-- [Stage 7 scope](#stage-7-scope)
+- [Stage 8 scope](#stage-8-scope)
 - [Backend reference](#backend-reference)
 - [Roadmap](#roadmap)
 
@@ -92,23 +96,47 @@ npm run build
 
 The build output is written to `dist/students-management-frontend/browser`.
 
+## Documentation
+
+The README is the canonical reference for architecture, design decisions, and the API contract.
+Operational guides live in `docs/` and link back here instead of repeating it:
+
+| Guide                                                      | Contents                                                        |
+| ---------------------------------------------------------- | --------------------------------------------------------------- |
+| [docs/installation.md](docs/installation.md)               | Prerequisites, local setup, quality gates, and troubleshooting. |
+| [docs/configuration.md](docs/configuration.md)             | Environment contract, build-time variables, and secrets policy. |
+| [docs/deployment.md](docs/deployment.md)                   | Build output, hosting, container image, headers, and rollback.  |
+| [docs/backend-integration.md](docs/backend-integration.md) | Connection model, endpoint map, and the integration smoke test. |
+
 ## Scripts
 
-| Command                 | Description                                              |
-| ----------------------- | -------------------------------------------------------- |
-| `npm start`             | Start the development server.                            |
-| `npm run build`         | Build the application for production.                    |
-| `npm run watch`         | Rebuild continuously with the development configuration. |
-| `npm test`              | Run unit tests once with Vitest.                         |
-| `npm run test:watch`    | Run unit tests in watch mode.                            |
-| `npm run test:coverage` | Run tests with coverage enabled.                         |
-| `npm run lint`          | Lint TypeScript and template files with ESLint.          |
-| `npm run format`        | Format the repository with Prettier.                     |
-| `npm run format:check`  | Check formatting without writing files.                  |
+| Command                      | Description                                                   |
+| ---------------------------- | ------------------------------------------------------------- |
+| `npm start`                  | Start the development server.                                 |
+| `npm run config:generate`    | Generate the production environment file from `API_BASE_URL`. |
+| `npm run build`              | Generate the environment, then build for production.          |
+| `npm run watch`              | Rebuild continuously with the development configuration.      |
+| `npm test`                   | Run unit tests once with Vitest.                              |
+| `npm run test:scripts`       | Run the build-tooling tests with the Node.js test runner.     |
+| `npm run test:watch`         | Run unit tests in watch mode.                                 |
+| `npm run test:coverage`      | Run tests with coverage enabled.                              |
+| `npm run lint`               | Lint TypeScript and template files with ESLint.               |
+| `npm run format`             | Format the repository with Prettier.                          |
+| `npm run format:check`       | Check formatting without writing files.                       |
+| `npm run verify:integration` | Run the development-only backend integration smoke test.      |
+
+`npm run build` runs `config:generate` automatically through the npm `prebuild` lifecycle, so a
+production build always reflects the current `API_BASE_URL`. See
+[docs/configuration.md](docs/configuration.md).
 
 ## Project structure
 
 ```text
+docs/                            # Operational guides, linked from the README
+scripts/                         # Dependency-free Node helpers (env generation, smoke test)
+.github/workflows/ci.yml         # CI: quality gates and container image build
+Dockerfile                       # Multi-stage image: Node build, then nginx runtime
+nginx.conf.template              # Templated nginx config: SPA fallback, cache, and security headers
 src/
 ├── app/
 │   ├── core/                    # Cross-cutting configuration with no feature ownership
@@ -140,8 +168,9 @@ src/
 │   └── app.ts                   # Root component
 ├── environments/
 │   ├── environment.model.ts     # Typed environment contract
-│   ├── environment.ts           # Production defaults
-│   └── environment.development.ts
+│   ├── environment.ts           # Default fallback for tests and tooling
+│   ├── environment.development.ts
+│   └── environment.production.ts # Generated on build from API_BASE_URL (Git-ignored)
 ├── styles/
 │   ├── _base.scss               # Global element styles and shared state/loading utilities
 │   ├── _reset.scss              # Minimal reset
@@ -320,16 +349,25 @@ Files follow the Angular 2025 style guide: `welcome.ts`, `welcome.html`, `welcom
 
 ## Environment configuration
 
-Environment files contain no secrets. They are build-time configuration only.
+Environment files contain no secrets. They are build-time configuration only, and the production
+bundle reads no runtime environment variables.
 
-- `environment.development.ts` points `apiBaseUrl` at `http://localhost:3000`, matching the local
-  backend default.
-- `environment.ts` uses an empty `apiBaseUrl`, which keeps requests on the frontend origin. This is
-  the expected production setup when a reverse proxy serves both applications from one host.
+| File                         | Used by                                   | `apiBaseUrl`                            |
+| ---------------------------- | ----------------------------------------- | --------------------------------------- |
+| `environment.development.ts` | Development server and development builds | `http://localhost:3000`                 |
+| `environment.ts`             | Default fallback for tests and tooling    | empty (same origin)                     |
+| `environment.production.ts`  | Production builds                         | generated from `API_BASE_URL` (ignored) |
 
-The development configuration is selected through a file replacement in `angular.json`. Adjust the
-production value when the deployment topology is known. Never place credentials, JWT secrets, or
-private keys in the frontend.
+`scripts/generate-environment.mjs` reads `API_BASE_URL` from the environment or a local `.env` file
+and writes `environment.production.ts` before each production build. An empty value keeps requests on
+the frontend origin, which is the expected setup when a reverse proxy serves the API and the
+frontend from one host. `angular.json` selects the file through `fileReplacements`. Copy
+`.env.example` to `.env` to set the value locally.
+
+The only value the frontend needs is the public API base URL. Never place credentials, JWT secrets,
+database URLs, or private keys in the frontend configuration, in `.env`, or in the bundle: anything
+shipped in the bundle is downloadable by any visitor. See
+[docs/configuration.md](docs/configuration.md).
 
 ## Design system
 
@@ -422,11 +460,44 @@ asserted.
 npm test
 ```
 
+The build-tooling scripts are covered separately with the Node.js test runner:
+
+```bash
+npm run test:scripts
+```
+
 Coverage is available with:
 
 ```bash
 npm run test:coverage
 ```
+
+## Deployment
+
+The application builds to a static single-page application under
+`dist/students-management-frontend/browser`. Any static host can serve it; a reverse proxy is only
+required to reach the API on the same origin.
+
+```bash
+npm ci
+npm run build
+```
+
+The output uses hashed asset names and a small initial bundle. `index.html` must be served
+`no-cache`, hashed assets are immutable, and unknown paths must fall back to `index.html` so deep
+links resolve. A `Dockerfile` and `nginx.conf.template` provide the build and a production web
+server with the SPA fallback, cache headers, compression, and security headers. The
+`Content-Security-Policy` allows `connect-src 'self'` plus the configured `API_BASE_URL`, so the
+same value supports a same-origin or a separate-origin API:
+
+```bash
+docker build -t students-management-frontend --build-arg API_BASE_URL= .
+docker run --rm -p 8080:80 students-management-frontend
+```
+
+`.github/workflows/ci.yml` runs the lint, format, test, and build gates on every push and pull
+request, and then builds the container image. It never pushes or deploys. Full hosting, header, and
+rollback details are in [docs/deployment.md](docs/deployment.md).
 
 ## Git workflow
 
@@ -440,34 +511,42 @@ npm run test:coverage
 - `feature/student-management` contains Stage 5 and builds on the student-list branch.
 - `feature/role-permissions` contains Stage 6 and builds on the student-management branch.
 - `feature/quality` contains Stage 7 and builds on the role-permissions branch.
+- `feature/deployment` contains Stage 8 and builds on the quality branch.
 - Future stages use one `feature/*` branch each and target `develop` through a pull request.
 
 The frontend repository is independent from the backend repository. No backend files are modified by
 this project.
 
-## Stage 7 scope
+## Stage 8 scope
 
 Included:
 
-- a unified `describeApiError(error, messages)` helper in `core/http/api-error.ts` with a documented
-  resolution order and per-feature `ApiErrorMessages`, replacing the duplicated error mappers in the
-  login, directory, detail, and editor flows;
-- shared `.state-panel*` and `.loading-panel` utilities in `styles/_base.scss` so empty, error,
-  not-found, and loading states are visually consistent across features;
-- WCAG 2.2 AA accessibility: `axe-core` runs the WCAG 2.2 A/AA rule set inside the component specs
-  through the shared `testing/a11y.ts` helper, and interactive controls meet the 24×24 CSS pixel
-  minimum target size (SC 2.5.8);
-- responsive layouts that stay usable from 320px wide, with a small-phone tier that tightens padding
-  and stacks actions;
-- unit and accessibility tests for the shared error helper and every page state;
-- documentation updates and full test, lint, format, and production build verification.
+- operational documentation in `docs/`: installation, configuration, deployment, and backend
+  integration, each linking to this README instead of repeating the architecture or the API contract;
+- a dependency-free `scripts/generate-environment.mjs` that writes the Git-ignored production
+  environment from the `API_BASE_URL` build-time variable, wired to `npm run build` through the
+  `prebuild` lifecycle, plus a documented `.env.example`;
+- production configuration: the `production` build replaces the environment file, and the deployment
+  guidance covers hashed assets, cache policy, compression, security headers, and the SPA fallback;
+- deployment artifacts: a multi-stage `Dockerfile`, an `nginx.conf.template` with the SPA fallback,
+  cache and security headers whose `connect-src` is rendered from `API_BASE_URL`, a `.dockerignore`,
+  and a `public/robots.txt` for the internal app;
+- build-tooling tests for the environment generator (safe serialization) and the nginx template
+  (CSP without wildcards), run with the Node.js test runner;
+- a `scripts/verify-integration.mjs` smoke test that targets development only, uses unique data,
+  cleans up in a `finally` block, and verifies `401`, `403`, and `404` behavior;
+- a `.github/workflows/ci.yml` pipeline that runs the quality gates and builds the container image
+  without pushing or deploying;
+- README updates for the finalization stage and full lint, format, test, and production build
+  verification.
 
 Excluded:
 
-- Stage 8 finalization and deployment preparation;
-- visual redesign or changes to the established design tokens and identity;
 - backend changes; the API remains read-only for this project;
-- end-to-end browser automation and screenshot-based visual regression testing.
+- visual redesign or changes to the established design tokens and identity;
+- runtime configuration, progressive web app features, internationalization, and browser-based
+  end-to-end automation;
+- automated deployment, secret provisioning, and hosting-specific configuration.
 
 ## Backend reference
 
@@ -529,4 +608,5 @@ newest first. The response shape is:
    role-aware interface behavior.
 7. **Quality** — completed. Unified validations and error handling, WCAG 2.2 AA accessibility,
    responsiveness from 320px, consistent loading and empty states, and accessibility tests.
-8. **Finalization** — documentation and deployment preparation.
+8. **Finalization** — completed. Operational documentation, build-time configuration, container and
+   CI artifacts, and a backend integration smoke test.
